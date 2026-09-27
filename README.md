@@ -80,54 +80,19 @@ Most GenAI apps hard-code one model. Pick a premium model and you overpay for "W
 
 ### Request flow inside the proxy
 
-```mermaid
-flowchart LR
-  C[Client] -->|x-api-key, x-router-strategy| A[VerifyAPIKey + SpikeArrest]
-  A --> P[JS-PrepareRequest]
-  P -->|rules| D[JS-DecideRoute]
-  P -->|classifier| SC1[SC-Classifier: gemini-3.5-flash-lite] --> D
-  P -->|nvidia| SC2["SC-ClassifierEngine: NVIDIA NemoCurator on Cloud Run"] --> D
-  D -->|"/v1/route (dry run)"| R[Decision JSON]
-  D -->|"/v1/chat, /v1/stream"| T["Vertex AI · Azure AI Foundry · Cloud Run"]
-  T -->|error 404/408/429/5xx| F["SC-Failover: tier backup Gemini model"]
-  T --> H[Route headers + DataCapture analytics]
-  F --> H
-```
+<p align="center">
+  <img src="docs/request-flow.png" alt="Proxy request flow: Client to VerifyAPIKey and SpikeArrest, then JS-PrepareRequest. Rules go straight to JS-DecideRoute; the classifier and NVIDIA strategies call SC-Classifier or SC-ClassifierEngine first. JS-DecideRoute returns decision JSON for /v1/route, or calls Vertex AI, Azure AI Foundry or Cloud Run for /v1/chat and /v1/stream. On 404, 408, 429 or 5xx, SC-Failover calls the tier backup Gemini model. Both paths end with route headers and DataCapture analytics." width="100%">
+</p>
+
+<sub>Source: <a href="docs/request-flow.mmd">docs/request-flow.mmd</a> (Mermaid)</sub>
 
 ### End-to-end sequence
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User
-    participant UI as Web UI (Node BFF)
-    participant GW as Apigee X AI Gateway
-    participant CLS as Classifier (Gemini Flash-Lite / NVIDIA)
-    participant LLM as Chosen model
-    participant BK as Backup Gemini model
+<p align="center">
+  <img src="docs/sequence.png" alt="Sequence: the user sends a prompt; the web UI posts to /v1/stream with the NVIDIA strategy; Apigee verifies the key, calls the classifier, gets tier complex, maps it to gemini-3.1-pro-preview and streams the answer back with x-route headers. Failover: the chosen model returns 429, 5xx or a simulated 404; Apigee calls the backup Gemini model via SC-Failover and returns its answer with x-route-failover headers." width="100%">
+</p>
 
-    rect rgb(240, 248, 255)
-    Note over User,BK: Dynamic routing
-    User->>UI: "Prove there are infinitely many primes..."
-    UI->>GW: POST /v1/stream (x-api-key, x-router-strategy: nvidia)
-    GW->>GW: VerifyAPIKey + SpikeArrest + JS-PrepareRequest
-    GW->>CLS: ServiceCallout (prompt)
-    CLS-->>GW: tier = complex, confidence, reason
-    GW->>GW: JS-DecideRoute: complex → gemini-3.1-pro-preview
-    GW->>LLM: streamGenerateContent
-    LLM-->>GW: answer
-    GW-->>UI: SSE + x-routed-model, x-route-tier, x-route-reason
-    end
-
-    rect rgb(255, 245, 235)
-    Note over User,BK: Model failover
-    GW->>LLM: call chosen model
-    LLM-->>GW: 429 / 5xx (or simulated 404)
-    GW->>BK: SC-Failover (same request, backup model)
-    BK-->>GW: answer
-    GW-->>UI: answer + x-route-failover-from, x-route-failover-reason
-    end
-```
+<sub>Source: <a href="docs/sequence.mmd">docs/sequence.mmd</a> (Mermaid)</sub>
 
 ---
 

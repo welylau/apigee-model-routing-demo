@@ -1,0 +1,30 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as Web UI (Node BFF)
+    participant GW as Apigee X AI Gateway
+    participant CLS as Classifier (Gemini Flash-Lite / NVIDIA)
+    participant LLM as Chosen model
+    participant BK as Backup Gemini model
+
+    rect rgb(240, 248, 255)
+    Note over User,BK: Dynamic routing
+    User->>UI: "Prove there are infinitely many primes..."
+    UI->>GW: POST /v1/stream (x-api-key, x-router-strategy: nvidia)
+    GW->>GW: VerifyAPIKey + SpikeArrest + JS-PrepareRequest
+    GW->>CLS: ServiceCallout (prompt)
+    CLS-->>GW: tier = complex, confidence, reason
+    GW->>GW: JS-DecideRoute: complex → gemini-3.1-pro-preview
+    GW->>LLM: streamGenerateContent
+    LLM-->>GW: answer
+    GW-->>UI: SSE + x-routed-model, x-route-tier, x-route-reason
+    end
+
+    rect rgb(255, 245, 235)
+    Note over User,BK: Model failover
+    GW->>LLM: call chosen model
+    LLM-->>GW: 429 / 5xx (or simulated 404)
+    GW->>BK: SC-Failover (same request, backup model)
+    BK-->>GW: answer
+    GW-->>UI: answer + x-route-failover-from, x-route-failover-reason
+    end
