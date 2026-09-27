@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<AssignMessage continueOnError="false" enabled="true" name="AM-FailoverRequest">
+    <DisplayName>AM-FailoverRequest</DisplayName>
+    <!-- Backup request: the original Gemini body saved by JS-DecideRoute (before provider translation). -->
+    <AssignTo createNew="true" transport="http" type="request">failoverRequest</AssignTo>
+    <Set>
+        <Verb>POST</Verb>
+        <Headers>
+            <Header name="Content-Type">application/json</Header>
+        </Headers>
+        <Payload contentType="application/json" variablePrefix="@" variableSuffix="#">@llmr.failover_body#</Payload>
+    </Set>
+    <IgnoreUnresolvedVariables>false</IgnoreUnresolvedVariables>
+</AssignMessage>

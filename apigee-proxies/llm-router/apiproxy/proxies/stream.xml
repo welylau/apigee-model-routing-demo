@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ProxyEndpoint name="stream">
+    <Description>POST /llm-router/v1/stream : same routing decision as /v1/chat, but the model response is streamed back as SSE (streamGenerateContent). Kept as a separate ProxyEndpoint so response streaming does not affect the buffered /v1/chat path (payload policies such as EV-ExtractUsage cannot run on streamed responses).</Description>
+    <DefaultFaultRule name="default-fault">
+        <Step>
+            <Name>AM-FaultResponse</Name>
+            <Condition>fault.name != "RaiseFault"</Condition>
+        </Step>
+        <AlwaysEnforce>true</AlwaysEnforce>
+    </DefaultFaultRule>
+    <PreFlow name="PreFlow">
+        <Request>
+            <Step>
+                <Name>VA-VerifyAPIKey</Name>
+            </Step>
+            <Step>
+                <Name>SA-SpikeArrest</Name>
+            </Step>
+            <!-- TODO(security): add Model Armor SanitizeUserPrompt here to screen prompt injection / sensitive data before routing. -->
+        </Request>
+        <Response/>
+    </PreFlow>
+    <Flows>
+        <Flow name="stream">
+            <Description>Decide which model should serve the prompt, then stream the answer.</Description>
+            <Condition>request.verb = "POST" and (proxy.pathsuffix = "" or proxy.pathsuffix = "/")</Condition>
+            <Request>
+                <Step>
+                    <Name>JS-PrepareRequest</Name>
+                </Step>
+                <Step>
+                    <Name>RF-BadRequest</Name>
+                    <Condition>llmr.has_prompt = "false"</Condition>
+                </Step>
+                <Step>
+                    <Name>RF-PayloadTooLarge</Name>
+                    <Condition>llmr.too_large = "true"</Condition>
+                </Step>
+                <Step>
+                    <Name>SC-Classifier</Name>
+                    <Condition>llmr.strategy = "classifier"</Condition>
+                </Step>
+                <Step>
+                    <Name>SC-ClassifierEngine</Name>
+                    <Condition>llmr.strategy = "nvidia"</Condition>
+                </Step>
+                <Step>
+                    <Name>SC-ExternalEngine</Name>
+                    <Condition>llmr.strategy = "external"</Condition>
+                </Step>
+                <Step>
+                    <Name>JS-DecideRoute</Name>
+                </Step>
+            </Request>
+            <Response/>
+        </Flow>
+        <Flow name="not-found">
+            <Request>
+                <Step>
+                    <Name>RF-NotFound</Name>
+                </Step>
+            </Request>
+            <Response/>
+        </Flow>
+    </Flows>
+    <PostFlow name="PostFlow">
+        <Request/>
+        <Response>
+            <!-- Header-only policies are safe with streaming; no body access here. -->
+            <Step>
+                <Name>AM-RouteHeaders</Name>
+            </Step>
+            <Step>
+                <Name>DC-RoutingAnalytics</Name>
+            </Step>
+        </Response>
+    </PostFlow>
+    <HTTPProxyConnection>
+        <BasePath>/llm-router/v1/stream</BasePath>
+        <Properties>
+            <Property name="response.streaming.enabled">true</Property>
+        </Properties>
+    </HTTPProxyConnection>
+    <RouteRule name="gemma-stream">
+        <Condition>llmr.is_gemma = "true"</Condition>
+        <TargetEndpoint>gemma-stream</TargetEndpoint>
+    </RouteRule>
+    <RouteRule name="azure">
+        <Condition>llmr.is_azure = "true"</Condition>
+        <TargetEndpoint>azure-stream</TargetEndpoint>
+    </RouteRule>
+    <!-- Claude: non-streaming rawPredict + Anthropic translators; anthropic-response.js wraps the answer as SSE. -->
+    <RouteRule name="claude">
+        <Condition>llmr.is_claude = "true"</Condition>
+        <TargetEndpoint>vertex</TargetEndpoint>
+    </RouteRule>
+    <RouteRule name="vertex-stream">
+        <TargetEndpoint>vertex-stream</TargetEndpoint>
+    </RouteRule>
+</ProxyEndpoint>

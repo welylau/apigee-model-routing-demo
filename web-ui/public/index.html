@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apigee: Dynamic Model (LLM) Routing</title>
+  <link rel="icon" href="/assets/apigee-logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- TOP HEADER: Google Cloud & Apigee X Logos -->
+    <header class="app-header">
+      <div class="brand-section">
+        <div class="cloud-logos-wrapper">
+          <div class="logo-item" title="Google Cloud Platform">
+            <img src="/assets/google-cloud.png" alt="Google Cloud" class="gcp-logo-img">
+            <span class="gcp-name">Google Cloud</span>
+          </div>
+          <div class="brand-divider"></div>
+          <div class="logo-item apigee-brand" title="Apigee API Management Platform">
+            <img src="/assets/apigee-logo.svg" alt="Apigee" class="apigee-svg">
+            <span class="apigee-name">Apigee <strong class="x-accent">X</strong></span>
+          </div>
+        </div>
+        <div class="brand-divider"></div>
+        <div class="brand-title-area">
+          <div class="brand-title">
+            <span>Apigee: Dynamic Model (LLM) Routing</span>
+            </div>
+          <span class="brand-subtitle">Pluggable Decision Engine &amp; Routing Telemetry</span>
+        </div>
+      </div>
+
+      <div class="arch-tags">
+        <div class="hero-pill" title="Apigee routes every prompt to the right model: Gemini · GPT · Claude · Grok · Gemma">
+          <span class="logo-stack" id="logo-stack" aria-hidden="true"></span>
+          <span class="hero-text">One Gateway. <span class="hero-accent">Any Model.</span> Right Route.</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="status-badge" title="Apigee Gateway Status">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">Connecting…</span>
+        </div>
+        <button type="button" class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Light / Dark mode" aria-label="Toggle theme">
+          <svg id="themeIconSun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          <svg id="themeIconMoon" class="hidden" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div class="simulator-layout">
+
+        <!-- LEFT PANEL -->
+        <aside class="simulator-left-panel" id="left-panel">
+          
+
+                              
+          <div class="section-card routing-card">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              <span>Routing Configuration</span>
+            </div>
+            <p class="section-desc">How Apigee decides which LLM should serve the prompt.</p>
+
+            <div class="mode-switch" role="tablist" aria-label="Routing mode">
+              <button type="button" id="tab-dynamic" class="mode-tab active" role="tab" aria-selected="true" aria-controls="dynamic-content">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+                <span>Dynamic Routing</span>
+              </button>
+              <button type="button" id="tab-static" class="mode-tab" role="tab" aria-selected="false" aria-controls="static-content">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+                <span>Static Routing</span>
+              </button>
+            </div>
+            <p class="mode-hint" id="mode-hint">Apigee picks the best-fit model for each prompt.</p>
+
+            <div id="dynamic-content" role="tabpanel" aria-labelledby="tab-dynamic">
+              <div class="sub-head sub-head-row">
+                <span class="sub-head-label"><span class="sub-num">1</span><span>Tier &rarr; model mapping</span></span>
+                <button type="button" id="btn-customize-map" class="customize-btn" aria-haspopup="dialog">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  <span>Customize</span>
+                </button>
+              </div>
+              <div class="tier-map" id="tier-map" role="button" tabindex="0" aria-label="Tier to model mapping. Activate to customize." title="Click to customize which model serves each tier"></div>
+
+              <div class="sub-head sub-head-spaced"><span class="sub-num">2</span><span>Decision strategy</span></div>
+              <div class="apps-grid" id="strategy-grid"></div>
+            </div>
+
+            <div id="static-content" class="hidden" role="tabpanel" aria-labelledby="tab-static">
+              <div class="apps-grid" id="static-model-list"></div>
+              <p class="static-note">ⓘ Tier rules and Settings preferences are skipped. Prices are per 1M tokens (in / out).</p>
+            </div>
+          </div>
+
+          <div class="section-card arch-card">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="8.5" y="14" width="7" height="7"></rect><path d="M6.5 10v2h11v-2M12 12v2"></path></svg>
+              <span>Architecture</span>
+            </div>
+            <p class="section-desc">Static vs dynamic routing through Apigee X.</p>
+            <button type="button" id="btn-arch" class="btn btn-secondary arch-btn" aria-haspopup="dialog">🗺️ View Architecture Diagram</button>
+          </div>
+        </aside>
+
+        <!-- Drag to resize the left panel (double-click to reset) -->
+        <div class="panel-resizer" id="panel-resizer" role="separator" aria-orientation="vertical" aria-controls="left-panel" aria-label="Resize left panel" tabindex="0" title="Drag to resize · double-click to reset">
+          <span class="panel-resizer-grip" aria-hidden="true"></span>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="simulator-right-panel">
+
+          <!-- Session KPIs (always in view) -->
+          <div class="kpi-card" id="kpi-card" aria-label="Session insights">
+            <div class="kpi"><span class="kpi-val" id="k-req">0</span><span class="kpi-lbl">Requests</span></div>
+            <div class="kpi"><span class="kpi-val" id="s-cost">$0.0000</span><span class="kpi-lbl">Routed cost</span></div>
+            <div class="kpi"><span class="kpi-val" id="s-pro">$0.0000</span><span class="kpi-lbl" id="s-pro-lbl">If always the premium model</span></div>
+            <div class="kpi"><span class="kpi-val accent" id="s-saved">–</span><span class="kpi-lbl">Saved</span></div>
+            <div class="kpi"><span class="kpi-val" id="k-lat">–</span><span class="kpi-lbl">Avg latency</span></div>
+            <div class="kpi kpi-mix"><div class="mix-track" id="mix"><span class="mix-empty">No routed requests yet</span></div><span class="kpi-lbl" title="Illustrative: list prices × tokens">Model mix</span></div>
+          </div>
+
+          <div class="simulation-grid">
+            <!-- Request controls -->
+            <div class="card request-card">
+              <div class="card-header">
+                <div class="card-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                  <span>Routing Controls</span>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Prompt Presets (Calibrated for Routing Tier):</label>
+                <div class="preset-buttons" id="presets"></div>
+              </div>
+
+              <div class="form-group">
+                <label for="prompt" class="form-label">Prompt to Apigee AI Gateway:</label>
+                <textarea id="prompt" rows="3" maxlength="20000" class="prompt-textarea" placeholder="Type prompt here..."></textarea>
+              </div>
+
+              <div class="option-toggles">
+                <div class="opt-toggle outage opt-combo">
+                  <label class="opt-combo-main" title="Makes the chosen model's call fail (HTTP 404) so you can watch Apigee fail over to the tier's backup Gemini model."><input type="checkbox" id="opt-outage"><span>🔌 Simulate model outage</span></label>
+                  <button type="button" id="btn-outage-help" class="opt-help" aria-haspopup="dialog" aria-label="How model outage simulation and failover work">How it works?</button>
+                </div>
+              </div>
+
+              <div class="controls-footer">
+                <span class="char-count" id="char-count">0 chars</span>
+                <div class="action-btn-group">
+                  <button type="button" id="btn-chat" class="btn btn-primary"><span class="btn-icon">🚀</span><span>Route &amp; Send Request</span></button>
+                  <button type="button" id="btn-compare" class="btn btn-apigee" title="Runs every Dynamic Routing strategy on this prompt. Decision only; no model is called."><span class="btn-icon">⚖️</span><span class="btn-label-stack"><span>Compare Routing Strategies</span><small>Decision only · no model call</small></span></button>
+                  <span class="demo-hint" tabindex="0" role="note"
+                        aria-label="Demo tip: Route &amp; Send shows the routing decision first, then streams the answer. Compare Routing Strategies shows how each decision engine routes the same prompt, without calling the model."
+                        data-tip="Demo tip: Route &amp; Send shows the routing decision first, then streams the answer. Compare Routing Strategies shows how each decision engine routes the same prompt, without calling the model.">ⓘ</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Response & telemetry -->
+            <div class="card response-card">
+              <div class="card-header">
+                <div class="card-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                  <span>Gateway Response &amp; Routing Telemetry</span>
+                </div>
+                <div class="latency-pill hidden" id="latency-pill"><span>⏱️</span><span id="latency">0 ms</span></div>
+              </div>
+
+              <div class="empty-state" id="empty-state">
+                <div class="empty-icon">💬</div>
+                <p>Click <strong>Route &amp; Send Request</strong> to see Apigee's routing decision and the model's response, or <strong>Compare Routing Strategies</strong> to see how each strategy would route the prompt.</p>
+              </div>
+
+              <div class="telemetry hidden" id="telemetry">
+                <ol class="pipeline" id="pipeline">
+                  <li data-step="auth"><span class="step-dot"></span><span>API Key &amp; SpikeArrest</span></li>
+                  <li data-step="decide"><span class="step-dot"></span><span id="decide-label">Decide</span></li>
+                  <li data-step="model"><span class="step-dot"></span><span>Model Call</span></li>
+                </ol>
+
+                <div class="alert hidden" id="alert"><div class="alert-icon" id="alert-icon"></div><div><h4 id="alert-title"></h4><p id="alert-msg"></p></div></div>
+
+                <div class="telemetry-grid" id="tele-grid">
+                  <div class="tele-item"><span class="tele-lbl">Routed Model</span><span class="tele-val" id="f-model">–</span></div>
+                  <div class="tele-item"><span class="tele-lbl">Decided By</span><span class="tele-val" id="f-decided">–</span></div>
+                  <div class="tele-item"><span class="tele-lbl">Confidence</span><span class="tele-val"><span class="mini-track"><i id="f-conf-bar"></i></span><span id="f-conf">–</span></span></div>
+                  <div class="tele-item"><span class="tele-lbl" title="Time Apigee spent deciding the route">Overhead</span><span class="tele-val mono" id="f-ms">–</span></div>
+                  <div class="tele-item"><span class="tele-lbl" title="Total tokens (input / output)">Tokens</span><span class="tele-val mono" id="f-tokens">–</span></div>
+                  <div class="tele-item"><span class="tele-lbl" title="List price of this answer (tokens × the answering model's price), and the saving vs the premium baseline model">Cost</span><span class="tele-val mono" id="f-cost">–</span></div>
+                  <div class="tele-item"><span class="tele-lbl" title="End-to-end time seen by the browser">Total</span><span class="tele-val mono" id="f-total">–</span></div>
+                  <div class="tele-item wide"><span class="tele-lbl">Routing Reason</span><span class="tele-val" id="f-reason">–</span></div>
+                </div>
+
+                <div class="answer-box hidden" id="answer-box">
+                  <div class="answer-head"><span>Model Response</span><span class="answer-model" id="answer-model"></span></div>
+                  <div id="answer" class="answer-text" role="region" aria-live="polite" aria-label="Model response"></div>
+                </div>
+
+                <div class="compare-box hidden" id="compare-box">
+                  <div class="answer-head"><span>Routing Strategy Comparison · Same Prompt</span><span class="answer-model">decision only · no model call</span></div>
+                  <div class="compare-verdict" id="compare-verdict" role="status"></div>
+                  <table>
+                    <thead><tr><th>Strategy</th><th>Routed Model</th><th>Why</th><th>Decision Time</th><th>Model Price</th></tr></thead>
+                    <tbody id="compare-body"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Request log -->
+          <div class="section-card">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+              <span>Routing Transaction Log</span>
+            </div>
+            <table class="log-table">
+              <thead><tr><th>Time</th><th>Strategy</th><th>Mode</th><th>Model</th><th>Tokens</th><th>Latency</th><th>Prompt</th></tr></thead>
+              <tbody id="history"><tr class="log-empty"><td colspan="7">No transactions yet.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <dialog id="rules-dialog" class="rules-dialog" aria-labelledby="rules-title">
+    <div class="rules-head">
+      <span id="rules-title">📏 Preset Rules Engine</span>
+      <button type="button" id="rules-close" class="rules-close" aria-label="Close">✕</button>
+    </div>
+    <div id="rules-body" class="rules-body"></div>
+  </dialog>
+  <dialog id="outage-dialog" class="rules-dialog outage-dialog" aria-labelledby="outage-title">
+    <div class="rules-head">
+      <span id="outage-title">🔌 Simulate model outage: how failover works</span>
+      <button type="button" id="outage-close" class="rules-close" aria-label="Close">✕</button>
+    </div>
+    <div class="rules-body">
+      <figure class="rules-figure">
+        <img src="/assets/failover.png" width="2278" height="643" alt="Apigee decides the tier and model, then calls the chosen model. If it returns an error (404, 408, 429 or 5xx), Apigee retries once on the tier's backup Gemini model and returns that answer with failover headers; otherwise the answer is returned directly. The outage toggle sends x-simulate-outage: primary, which makes the chosen model's call return HTTP 404.">
+      </figure>
+      <ol class="rules-list outage-steps">
+        <li><strong>The toggle breaks the call on purpose.</strong> It sends <code>x-simulate-outage: primary</code>. Apigee then calls the chosen model on a path that doesn't exist (same host), so it returns <strong>HTTP 404</strong>. Nothing changes on the real backend.</li>
+        <li><strong>Apigee catches the error.</strong> Instead of returning the error, it retries <strong>once</strong> on the tier's backup Gemini model on Vertex AI.</li>
+        <li><strong>The caller still gets an answer.</strong> You'll see the 🔁 Failover banner, a FAILOVER tag on the routed model and an amber Model Call step. The cost is for the backup model.</li>
+      </ol>
+      <p class="rules-note">ⓘ Real outages trigger the same failover; the toggle just makes one happen on demand. Bad requests (400 / 413) are not retried, and if the backup also fails the caller gets a generic error.</p>
+    </div>
+  </dialog>
+  <dialog id="arch-dialog" class="rules-dialog arch-dialog" aria-labelledby="arch-title">
+    <div class="rules-head">
+      <span id="arch-title">🗺️ Architecture: static vs dynamic model routing</span>
+      <button type="button" id="arch-close" class="rules-close" aria-label="Close">✕</button>
+    </div>
+    <div class="rules-body">
+      <figure class="rules-figure">
+        <img src="/assets/architecture.png" width="3378" height="1434" alt="Top: Static Routing. The client app names the model in the x-preferred-model header; Apigee X checks the API key and spike arrest, then routes to that catalog model. Bottom: Dynamic Routing. The client sends only the prompt; Apigee X picks a tier using one of three decision strategies (a: preset rules engine, b: Gemini 3.5 Flash-Lite classifier via ServiceCallout, c: NVIDIA NemoCurator complexity classifier via ServiceCallout), then maps the tier to a model.">
+      </figure>
+      <p class="rules-note">ⓘ Static: the client picks the model. Dynamic: Apigee picks it, using rules (a) or a classifier called via ServiceCallout (b, c).</p>
+    </div>
+  </dialog>
+  <dialog id="settings-dialog" class="rules-dialog" aria-labelledby="settings-title">
+    <div class="rules-head">
+      <span id="settings-title">Tier → Model Mapping</span>
+      <button type="button" id="settings-close" class="rules-close" aria-label="Close">✕</button>
+    </div>
+    <div class="rules-body">
+      <p class="section-desc">Choose which model serves each tier when Dynamic Routing is active. Static Routing ignores these settings.</p>
+      <div id="model-preferences">
+        <!-- JS will populate dropdowns here -->
+      </div>
+    </div>
+  </dialog>
+</body>
+</html>

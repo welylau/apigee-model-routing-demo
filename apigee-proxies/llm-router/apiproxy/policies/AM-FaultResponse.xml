@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<AssignMessage continueOnError="false" enabled="true" name="AM-FaultResponse">
+    <DisplayName>AM-FaultResponse</DisplayName>
+    <!-- Generic, branded error body; hides backend/internal details. Status code is preserved. -->
+    <Set>
+        <Headers>
+            <Header name="x-routed-model">{llmr.model}</Header>
+            <Header name="X-Content-Type-Options">nosniff</Header>
+            <Header name="Cache-Control">no-store</Header>
+        </Headers>
+        <Payload contentType="application/json" variablePrefix="@" variableSuffix="#">{"error":{"message":"The LLM gateway could not complete the request.","request_id":"@messageid#"}}</Payload>
+    </Set>
+    <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+    <AssignTo createNew="false" transport="http" type="response"/>
+</AssignMessage>

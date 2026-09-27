@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<KeyValueMapOperations mapIdentifier="azure-secrets" continueOnError="false" enabled="true" name="KVM-GetAzureKey">
+    <DisplayName>KVM-GetAzureKey</DisplayName>
+    <Get assignTo="private.azure_api_key">
+        <Key>
+            <Parameter>azure_api_key</Parameter>
+        </Key>
+    </Get>
+</KeyValueMapOperations>

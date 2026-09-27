@@ -1,0 +1,14 @@
+{
+  "operationConfigType": "proxy",
+  "operationConfigs": [
+    {
+      "apiSource": "llm-router",
+      "operations": [
+        {
+          "resource": "/",
+          "methods": ["POST"]
+        }
+      ]
+    }
+  ]
+}

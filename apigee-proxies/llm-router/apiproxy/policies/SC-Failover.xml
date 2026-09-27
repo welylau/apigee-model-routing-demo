@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ServiceCallout continueOnError="true" enabled="true" name="SC-Failover">
+    <DisplayName>SC-Failover</DisplayName>
+    <!-- One retry on the tier's backup Gemini model. URL is built from the tier backup model (llmr.failover_model). -->
+    <Request clearPayload="false" variable="failoverRequest"/>
+    <Response>failoverResponse</Response>
+    <Timeout>90000</Timeout>
+    <HTTPTargetConnection>
+        <Authentication>
+            <GoogleAccessToken>
+                <Scopes>
+                    <Scope>https://www.googleapis.com/auth/cloud-platform</Scope>
+                </Scopes>
+            </GoogleAccessToken>
+        </Authentication>
+        <URL>https://aiplatform.googleapis.com/v1/projects/{propertyset.routing.project}/locations/{propertyset.routing.location}/publishers/google/models/{llmr.failover_model}:generateContent</URL>
+    </HTTPTargetConnection>
+</ServiceCallout>

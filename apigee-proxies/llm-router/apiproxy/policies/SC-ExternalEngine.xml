@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ServiceCallout continueOnError="true" enabled="true" name="SC-ExternalEngine">
+    <DisplayName>SC-ExternalEngine</DisplayName>
+    <!--
+      Strategy "external": delegate the decision to an external engine (e.g. TypeSafe AI JEV).
+      Host is resolved from TargetServer "jev-engine" so the engine can be re-pointed without redeploying.
+      Contract: POST /v1/decide  -> 200 {"tier":"simple|standard|complex" | "model":"<configured model>", "confidence":0..1, "reason":"..."}
+      TODO(security): add engine authentication (e.g. GoogleIDToken for Cloud Run, or mTLS / API key from an encrypted KVM).
+    -->
+    <Request clearPayload="true" variable="externalRequest">
+        <Set>
+            <Verb>POST</Verb>
+            <Payload contentType="application/json">{route_internal.external_body}</Payload>
+        </Set>
+        <IgnoreUnresolvedVariables>false</IgnoreUnresolvedVariables>
+    </Request>
+    <Response>externalResponse</Response>
+    <Timeout>3000</Timeout>
+    <HTTPTargetConnection>
+        <LoadBalancer>
+            <Server name="jev-engine"/>
+        </LoadBalancer>
+        <Path>/v1/decide</Path>
+    </HTTPTargetConnection>
+</ServiceCallout>

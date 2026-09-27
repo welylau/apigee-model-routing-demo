@@ -1,0 +1,12 @@
+{
+  "displayName": "LLM Router - Model Mix and Tokens",
+  "metrics": [
+    { "name": "message_count", "function": "sum" },
+    { "name": "dc_total_tokens", "function": "sum" },
+    { "name": "dc_route_decision_ms", "function": "avg" },
+    { "name": "total_response_time", "function": "avg" }
+  ],
+  "dimensions": ["dc_routed_model", "dc_route_tier", "dc_route_decided_by"],
+  "filter": "(apiproxy eq 'llm-router')",
+  "chartType": "column"
+}

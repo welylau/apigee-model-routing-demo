@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<AssignMessage continueOnError="false" enabled="true" name="AM-RouteHeaders">
+    <DisplayName>AM-RouteHeaders</DisplayName>
+    <!-- Make the routing decision visible to the caller (demo transparency) plus baseline security headers. -->
+    <Set>
+        <Headers>
+            <Header name="x-routed-model">{llmr.model}</Header>
+            <Header name="x-route-tier">{llmr.tier}</Header>
+            <Header name="x-route-thinking">{llmr.thinking}</Header>
+            <Header name="x-route-decided-by">{llmr.decided_by}</Header>
+            <Header name="x-route-confidence">{llmr.confidence}</Header>
+            <Header name="x-route-reason">{llmr.reason}</Header>
+            <Header name="x-route-fallback">{llmr.fallback_reason}</Header>
+            <Header name="x-route-decision-ms">{llmr.decision_ms}</Header>
+            <Header name="x-route-task">{llmr.task}</Header>
+            <Header name="x-route-scores">{llmr.scores}</Header>
+            <Header name="x-user-tier">{llmr.user_tier}</Header>
+            <Header name="x-route-failover-from">{llmr.failover_from}</Header>
+            <Header name="x-route-failover-reason">{llmr.failover_reason}</Header>
+            <Header name="x-tokens-total">{usage.total_tokens}</Header>
+            <Header name="X-Content-Type-Options">nosniff</Header>
+            <Header name="Cache-Control">no-store</Header>
+        </Headers>
+    </Set>
+    <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+    <AssignTo createNew="false" transport="http" type="response"/>
+</AssignMessage>

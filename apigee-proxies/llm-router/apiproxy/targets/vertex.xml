@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<TargetEndpoint name="vertex">
+    <Description>Vertex AI Gemini / Anthropic. The concrete model is chosen at runtime via target.url.</Description>
+    <PreFlow name="PreFlow">
+        <Request>
+            <Step>
+                <Name>AM-SetTargetModel</Name>
+            </Step>
+            <Step>
+                <Name>JS-AnthropicRequest</Name>
+                <Condition>llmr.is_claude = "true"</Condition>
+            </Step>
+        </Request>
+        <Response>
+            <!-- Model failover: errors reach this flow (success.codes), retry once on a backup Gemini model. -->
+            <Step>
+                <Name>JS-FailoverCheck</Name>
+            </Step>
+            <Step>
+                <Name>AM-FailoverRequest</Name>
+                <Condition>llmr.failover_needed = "true"</Condition>
+            </Step>
+            <Step>
+                <Name>SC-Failover</Name>
+                <Condition>llmr.failover_needed = "true"</Condition>
+            </Step>
+            <Step>
+                <Name>JS-FailoverApply</Name>
+                <Condition>llmr.failover_needed = "true"</Condition>
+            </Step>
+            <Step>
+                <Name>AM-FaultResponse</Name>
+                <Condition>llmr.primary_failed = "true" and llmr.failover != "true"</Condition>
+            </Step>
+            <Step>
+                <Name>JS-AnthropicResponse</Name>
+                <Condition>llmr.is_claude = "true" and llmr.primary_failed != "true"</Condition>
+            </Step>
+        </Response>
+    </PreFlow>
+    <HTTPTargetConnection>
+        <Properties>
+            <Property name="success.codes">1xx,2xx,3xx,4xx,5xx</Property>
+        </Properties>
+        <Authentication>
+            <GoogleAccessToken>
+                <Scopes>
+                    <Scope>https://www.googleapis.com/auth/cloud-platform</Scope>
+                </Scopes>
+            </GoogleAccessToken>
+        </Authentication>
+        <!-- Placeholder; overwritten by AM-SetTargetModel -->
+        <URL>https://aiplatform.googleapis.com/v1</URL>
+    </HTTPTargetConnection>
+</TargetEndpoint>

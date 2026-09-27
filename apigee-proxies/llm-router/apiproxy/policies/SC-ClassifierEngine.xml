@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ServiceCallout continueOnError="true" enabled="true" name="SC-ClassifierEngine">
+    <DisplayName>SC-ClassifierEngine</DisplayName>
+    <!--
+      Strategy "nvidia": score the prompt with the self-hosted NVIDIA NemoCurator
+      prompt-task-and-complexity-classifier (DeBERTa-v3, Cloud Run, private).
+      Host is resolved from TargetServer "classifier-engine" (re-point without redeploying).
+      Auth: Google-signed ID token for the proxy's deploy SA; Cloud Run IAM only lets that SA invoke.
+      Contract: POST /v1/classify {"prompt": "..."} -> 200 {task_type, task_prob, complexity, reasoning, ...}
+      JS-DecideRoute maps the scores to a tier; any failure/timeout -> rules fallback.
+    -->
+    <Request clearPayload="true" variable="nvidiaRequest">
+        <Set>
+            <Verb>POST</Verb>
+            <Payload contentType="application/json">{route_internal.nvidia_body}</Payload>
+        </Set>
+        <IgnoreUnresolvedVariables>false</IgnoreUnresolvedVariables>
+    </Request>
+    <Response>nvidiaResponse</Response>
+    <Timeout>3000</Timeout>
+    <HTTPTargetConnection>
+        <Authentication>
+            <GoogleIDToken>
+                <Audience>https://prompt-classifier-YOUR_PROJECT_NUMBER.asia-southeast1.run.app</Audience>
+            </GoogleIDToken>
+        </Authentication>
+        <LoadBalancer>
+            <Server name="classifier-engine"/>
+        </LoadBalancer>
+        <Path>/v1/classify</Path>
+    </HTTPTargetConnection>
+</ServiceCallout>

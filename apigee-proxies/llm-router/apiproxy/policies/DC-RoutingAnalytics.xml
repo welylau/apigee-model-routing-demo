@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<DataCapture continueOnError="true" enabled="true" name="DC-RoutingAnalytics">
+    <DisplayName>DC-RoutingAnalytics</DisplayName>
+    <!-- Feeds Apigee custom reports: model mix, decision source, token usage, decision overhead. -->
+    <Capture>
+        <DataCollector>dc_routed_model</DataCollector>
+        <Collect ref="llmr.model"/>
+    </Capture>
+    <Capture>
+        <DataCollector>dc_route_tier</DataCollector>
+        <Collect ref="llmr.tier"/>
+    </Capture>
+    <Capture>
+        <DataCollector>dc_route_decided_by</DataCollector>
+        <Collect ref="llmr.decided_by"/>
+    </Capture>
+    <Capture>
+        <DataCollector>dc_route_decision_ms</DataCollector>
+        <Collect ref="llmr.decision_ms" default="0"/>
+    </Capture>
+    <Capture>
+        <DataCollector>dc_total_tokens</DataCollector>
+        <Collect ref="usage.total_tokens" default="0"/>
+    </Capture>
+</DataCapture>

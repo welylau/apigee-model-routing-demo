@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<APIProxy revision="1" name="llm-router">
+    <DisplayName>llm-router</DisplayName>
+    <Description>Dynamic LLM routing demo: a pluggable decision step (rules | classifier LLM | external engine e.g. TypeSafe AI JEV) picks the Gemini model per request.</Description>
+    <BasePaths>/llm-router</BasePaths>
+    <BasePaths>/llm-router/v1/stream</BasePaths>
+    <ProxyEndpoints>
+        <ProxyEndpoint>default</ProxyEndpoint>
+        <ProxyEndpoint>stream</ProxyEndpoint>
+    </ProxyEndpoints>
+    <TargetEndpoints>
+        <TargetEndpoint>vertex</TargetEndpoint>
+        <TargetEndpoint>vertex-stream</TargetEndpoint>
+    </TargetEndpoints>
+</APIProxy>

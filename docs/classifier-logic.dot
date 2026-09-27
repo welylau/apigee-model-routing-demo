@@ -1,0 +1,41 @@
+// Classifier LLM strategy (SC-Classifier + parseClassifier in decide-route.js; request built in prepare-request.js).
+// Render: dot -Tpng -Gdpi=180 docs/classifier-logic.dot -o docs/classifier-logic.png
+digraph ClassifierLLM {
+  graph [rankdir=LR, fontname="Helvetica", fontsize=15, bgcolor="white", pad=0.4, nodesep=0.35, ranksep=0.55, compound=true,
+         label=<<b>🧠 Classifier LLM</b>  <font point-size="11" color="#5f6368">Gemini judges intent &amp; complexity · Apigee enforces the verdict</font>>, labelloc=t, fontcolor="#202124"];
+  node  [fontname="Helvetica", fontsize=12, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#dadce0", penwidth=1.4, margin="0.2,0.1"];
+  edge  [fontname="Helvetica", fontsize=11, color="#80868b", fontcolor="#5f6368", arrowsize=0.8];
+
+  prompt [label="💬 Prompt", fillcolor="#e8f0fe", color="#1a73e8"];
+
+  subgraph cluster_apigee {
+    label=<<b>Apigee X · llm-router proxy</b>>; labeljust=l; fontsize=12; fontcolor="#e8710a";
+    style="rounded,dashed"; color="#e8710a"; penwidth=1.4; bgcolor="#fff8f1"; margin=18;
+
+    sc [label=<<b>ServiceCallout</b><br/><font point-size="10" color="#5f6368">SC-Classifier</font><br/><font point-size="9" color="#5f6368">first 4,000 chars · Google access token · 5 s timeout</font>>, fillcolor="#fef1e6", color="#e8710a"];
+    gate [label=<Valid tier and<br/>confidence ≥ 0.5?<br/><font point-size="9" color="#5f6368">JS-DecideRoute</font>>, shape=diamond, style=filled, fillcolor="#fef7e0", color="#f9ab00", fontsize=11];
+  }
+
+  gemini [label=<<b>Gemini 3.5 Flash-Lite</b><br/><font point-size="10" color="#5f6368">Vertex AI (global) · thinking minimal · temp 0</font><br/><font point-size="9" color="#5f6368">schema-enforced JSON: tier · domain · confidence · reason</font>>, fillcolor="#e8f0fe", color="#1a73e8"];
+
+  simple   [label=<<b>Simple</b><br/><font point-size="10">Gemini 3.5 Flash-Lite</font>>, fillcolor="#ecfdf5", color="#059669"];
+  standard [label=<<b>Standard</b><br/><font point-size="10">Gemini 3.5 Flash</font>>, fillcolor="#e8f0fe", color="#1a73e8"];
+  complex  [label=<<b>Complex</b><br/><font point-size="10">Gemini 3.1 Pro</font><br/><font point-size="9" color="#5f6368">thinking: high</font>>, fillcolor="#f3e8ff", color="#7c3aed"];
+  coding   [label=<<b>Coding</b><br/><font point-size="10">Gemini 2.5 Pro</font><br/><font point-size="9" color="#5f6368">thinking: medium</font>>, fillcolor="#fffbeb", color="#d97706"];
+  rules    [label=<<b>↩ Preset Rules Engine</b><br/><font point-size="10" color="#5f6368">error · timeout · invalid tier · confidence &lt; 0.5</font>>, fillcolor="#f1f3f4", color="#80868b", style="rounded,filled,dashed"];
+
+  note [shape=note, style=filled, fillcolor="#f8f9fa", color="#dadce0", fontsize=10, fontcolor="#5f6368",
+        label=<Schema enum: simple | standard | complex | coding.<br/>Code, SQL, scripts and architecture prompts → <b>Coding</b>.<br/>Models are defaults; override per tier in Tier → Model Mapping.>];
+
+  prompt -> sc;
+  sc -> gemini [dir=both, color="#1a73e8", penwidth=1.8, constraint=false, arrowsize=0.9];
+  sc -> gate [weight=10];
+  prompt -> gemini [style=invis];
+
+  gate -> simple   [label="simple"];
+  gate -> standard [label="standard"];
+  gate -> complex  [label="complex"];
+  gate -> coding   [label="coding"];
+  gate -> rules    [label="fallback", style=dashed];
+  rules -> note [style=invis];
+}

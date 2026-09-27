@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ServiceCallout continueOnError="true" enabled="true" name="SC-Classifier">
+    <DisplayName>SC-Classifier</DisplayName>
+    <!-- Strategy "classifier": a cheap, fast LLM classifies the prompt into simple|standard|complex. -->
+    <Request clearPayload="true" variable="classifierRequest">
+        <Set>
+            <Verb>POST</Verb>
+            <Payload contentType="application/json">{route_internal.classifier_body}</Payload>
+        </Set>
+        <IgnoreUnresolvedVariables>false</IgnoreUnresolvedVariables>
+    </Request>
+    <Response>classifierResponse</Response>
+    <Timeout>5000</Timeout>
+    <HTTPTargetConnection>
+        <Authentication>
+            <GoogleAccessToken>
+                <Scopes>
+                    <Scope>https://www.googleapis.com/auth/cloud-platform</Scope>
+                </Scopes>
+            </GoogleAccessToken>
+        </Authentication>
+        <URL>https://aiplatform.googleapis.com/v1/projects/YOUR_PROJECT_ID/locations/global/publishers/google/models/gemini-3.5-flash-lite:generateContent</URL>
+    </HTTPTargetConnection>
+</ServiceCallout>

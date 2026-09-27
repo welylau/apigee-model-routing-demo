@@ -1,0 +1,86 @@
+// Architecture overview: Static vs Dynamic routing through Apigee. Shown in the UI's "View Architecture Diagram" modal.
+// Render: dot -Tpng -Gdpi=170 docs/architecture.dot -o docs/architecture.png && cp docs/architecture.png web-ui/public/assets/architecture.png
+digraph Architecture {
+  graph [rankdir=LR, fontname="Helvetica", bgcolor="white", pad=0.35, nodesep=0.32, ranksep=0.55, newrank=true, compound=true,
+         label=<<b>Apigee: Dynamic Model (LLM) Routing</b>  <font point-size="12" color="#5f6368">static vs dynamic routing through one AI gateway</font>>,
+         labelloc=t, fontsize=18, fontcolor="#202124"];
+  node  [fontname="Helvetica", fontsize=13, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#dadce0", penwidth=1.6, margin="0.18,0.09"];
+  edge  [fontname="Helvetica", fontsize=11, color="#202124", fontcolor="#3c4043", penwidth=1.4, arrowsize=0.8];
+
+  // ---------------- 2. Dynamic routing ----------------
+  subgraph cluster_dynamic {
+    label=<<b>2 · Dynamic Routing</b>  <font point-size="11" color="#5f6368">Apigee chooses the model for each prompt</font>>;
+    labeljust=l; fontsize=15; style="rounded,filled"; fillcolor="#f1f3f4"; color="#dadce0"; penwidth=1.4;
+
+    d_client [label=<<b>📱 Client app</b>>, fillcolor="#e8f0fe", color="#1a73e8"];
+
+    subgraph cluster_d_apigee {
+      label=<<b>Apigee X</b> <font point-size="10" color="#5f6368">llm-router proxy</font>>; labeljust=l; fontsize=13;
+      style="rounded,filled"; fillcolor="#fef3f0"; color="#f04d23"; penwidth=1.8;
+      d_sec  [label=<<b>🔐 VerifyAPIKey</b><br/><font point-size="10">+ SpikeArrest</font>>];
+      d_prep [label=<<b>JS-PrepareRequest</b><br/><font point-size="10">normalise prompt</font>>];
+
+      subgraph cluster_options {
+        label=<<b>Decision strategy</b> <font point-size="10" color="#5f6368">x-router-strategy (pick one)</font>>; labeljust=l; fontsize=12;
+        style="rounded,dashed,filled"; fillcolor="#ffffff"; color="#f04d23"; penwidth=1.2;
+        opt_c [label=<<b>c · ⚡ SC-ClassifierEngine</b><br/><font point-size="10">ServiceCallout</font>>, fillcolor="#e6f4ea", color="#76b900"];
+        opt_b [label=<<b>b · 🧠 SC-Classifier</b><br/><font point-size="10">ServiceCallout</font>>, fillcolor="#e8f0fe", color="#1a73e8"];
+        opt_a [label=<<b>a · 📏 Preset Rules Engine</b><br/><font point-size="10">prompt length · in-proxy · ~0 ms</font>>, fillcolor="#f8f9fa", color="#80868b"];
+      }
+      d_decide [label=<<b>JS-DecideRoute</b><br/><font point-size="10">verdict → tier → model</font><br/><font point-size="9" color="#5f6368">(rules = fallback)</font>>];
+    }
+
+    gemini_cls [label=<<b>Gemini 3.5 Flash-Lite</b><br/><font point-size="10">classifier · Vertex AI</font>>, fillcolor="#e8f0fe", color="#1a73e8"];
+    nvidia_cls [label=<<b>NVIDIA NemoCurator</b><br/><font point-size="10">Complexity Classifier</font><br/><font point-size="9" color="#5f6368">DeBERTa-v3 · Cloud Run</font>>, fillcolor="#e6f4ea", color="#76b900"];
+
+    d_models [shape=box, style="rounded,filled", fillcolor="#ffffff", color="#dadce0", label=<
+      <table border="0" cellborder="0" cellspacing="2" cellpadding="1">
+        <tr><td align="left" colspan="2"><b>Tier → model</b> <font point-size="10" color="#5f6368">(customizable)</font></td></tr>
+        <tr><td align="left"><font point-size="11" color="#059669"><b>Simple</b></font></td><td align="left"><font point-size="11">Gemini 3.5 Flash-Lite</font></td></tr>
+        <tr><td align="left"><font point-size="11" color="#1a73e8"><b>Standard</b></font></td><td align="left"><font point-size="11">Gemini 3.5 Flash</font></td></tr>
+        <tr><td align="left"><font point-size="11" color="#7c3aed"><b>Complex</b></font></td><td align="left"><font point-size="11">Gemini 3.1 Pro</font></td></tr>
+        <tr><td align="left"><font point-size="11" color="#d97706"><b>Coding</b></font></td><td align="left"><font point-size="11">Gemini 2.5 Pro</font></td></tr>
+      </table>>];
+
+    d_client -> d_sec [label=<<font face="Courier" point-size="10">prompt only</font>>, color="#1967d2", fontcolor="#1967d2", penwidth=2];
+    d_sec -> d_prep;
+    d_prep -> opt_c; d_prep -> opt_b; d_prep -> opt_a;
+    opt_b -> gemini_cls [dir=both, style=dashed, arrowtail=vee, label="verdict", fontsize=10];
+    opt_c -> nvidia_cls [dir=both, style=dashed, arrowtail=vee, label="scores", fontsize=10];
+    opt_c -> d_decide; opt_b -> d_decide; opt_a -> d_decide;
+    d_decide -> d_models [label="routed model", penwidth=2];
+  }
+
+  // ---------------- 1. Static routing ----------------
+  subgraph cluster_static {
+    label=<<b>1 · Static Routing</b>  <font point-size="11" color="#5f6368">the client chooses the model</font>>;
+    labeljust=l; fontsize=15; style="rounded,filled"; fillcolor="#f1f3f4"; color="#dadce0"; penwidth=1.4;
+
+    s_client [label=<<b>📱 Client app</b>>, fillcolor="#e8f0fe", color="#1a73e8"];
+
+    subgraph cluster_s_apigee {
+      label=<<b>Apigee X</b> <font point-size="10" color="#5f6368">llm-router proxy</font>>; labeljust=l; fontsize=13;
+      style="rounded,filled"; fillcolor="#fef3f0"; color="#f04d23"; penwidth=1.8;
+      s_sec   [label=<<b>🔐 VerifyAPIKey</b><br/><font point-size="10">+ SpikeArrest</font>>];
+      s_route [label=<<b>🎯 Route to the<br/>selected model</b><br/><font point-size="10">no decision step</font>>];
+    }
+
+    s_models [shape=box, style="rounded,filled", fillcolor="#ffffff", color="#dadce0", label=<
+      <table border="0" cellborder="0" cellspacing="2" cellpadding="1">
+        <tr><td align="left"><b>Any catalog model</b></td></tr>
+        <tr><td align="left"><font point-size="11">Vertex AI · Gemini, Claude, Grok</font></td></tr>
+        <tr><td align="left"><font point-size="11">Azure AI Foundry · GPT-4.1 Nano</font></td></tr>
+        <tr><td align="left"><font point-size="11">Cloud Run · Gemma 2:2b</font></td></tr>
+      </table>>];
+
+    s_client -> s_sec [label=<<font face="Courier" point-size="10">x-preferred-model:<br/>gpt-4.1-nano</font>>, color="#1967d2", fontcolor="#1967d2", penwidth=2];
+    s_sec -> s_route;
+    s_route -> s_models [label="pinned model", penwidth=2];
+  }
+
+  // keep the static section on top and columns aligned
+  { rank=same; s_client; d_client; }
+  { rank=same; opt_a; opt_b; opt_c; gemini_cls; nvidia_cls; }
+  { rank=same; s_sec; d_sec; }
+  d_client -> s_client [style=invis, weight=0];
+}

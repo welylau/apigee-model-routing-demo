@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<AssignMessage continueOnError="false" enabled="true" name="AM-DecisionResponse">
+    <DisplayName>AM-DecisionResponse</DisplayName>
+    <!-- Dry run (/v1/route): return the routing decision without calling any model. -->
+    <Set>
+        <StatusCode>200</StatusCode>
+        <Payload contentType="application/json">{llmr.decision_json}</Payload>
+    </Set>
+    <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+    <AssignTo createNew="false" transport="http" type="response"/>
+</AssignMessage>

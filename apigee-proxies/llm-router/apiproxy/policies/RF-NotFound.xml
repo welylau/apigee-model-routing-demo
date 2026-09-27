@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<RaiseFault continueOnError="false" enabled="true" name="RF-NotFound">
+    <DisplayName>RF-NotFound</DisplayName>
+    <FaultResponse>
+        <Set>
+            <StatusCode>404</StatusCode>
+            <ReasonPhrase>Not Found</ReasonPhrase>
+            <Payload contentType="application/json">{"error":{"code":404,"message":"Use POST /v1/chat, POST /v1/route or POST /v1/stream."}}</Payload>
+        </Set>
+    </FaultResponse>
+    <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+</RaiseFault>

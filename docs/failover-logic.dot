@@ -1,0 +1,28 @@
+// Model failover + "Simulate model outage" (failover-check.js / SC-Failover / failover-apply.js). Shown in the UI's outage modal.
+// Render: dot -Tpng -Gdpi=180 docs/failover-logic.dot -o docs/failover-logic.png && cp docs/failover-logic.png web-ui/public/assets/failover.png
+digraph Failover {
+  graph [rankdir=LR, fontname="Helvetica", bgcolor="white", pad=0.25, nodesep=0.35, ranksep=0.4];
+  node  [fontname="Helvetica", fontsize=16, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#dadce0", penwidth=1.6, margin="0.18,0.1"];
+  edge  [fontname="Helvetica", fontsize=14, color="#80868b", fontcolor="#5f6368", arrowsize=0.9];
+
+  decide  [label=<<b>Apigee decides</b><br/><font point-size="13">tier + model</font>>, fillcolor="#fef3f0", color="#f04d23"];
+  primary [label=<<b>Chosen model</b><br/><font point-size="13">e.g. 3.5 Flash-Lite</font>>];
+  q       [label=<<b>Error?</b><br/><font point-size="12">404 · 429 · 5xx</font>>, shape=diamond, style=filled, fillcolor="#fef7e0", color="#f9ab00", margin="0.05,0.05"];
+  backup  [label=<<b>Backup Gemini</b><br/><font point-size="13">1 retry · Vertex AI</font>>, fillcolor="#fffbeb", color="#d97706"];
+  answer  [label=<<b>✅ Answer</b>>, fillcolor="#ecfdf5", color="#059669"];
+
+  sim [shape=note, style=filled, fillcolor="#fef3f0", color="#f04d23", fontsize=13, fontcolor="#3c4043",
+       label=<<b>🔌 Outage toggle</b><br/>forces <b>HTTP 404</b>>];
+  map [shape=note, style=filled, fillcolor="#f8f9fa", color="#dadce0", fontsize=12, fontcolor="#5f6368",
+       label=<Simple → 3.5 Flash<br/>Standard → 3.5 Flash-Lite<br/>Complex → 2.5 Pro<br/>Coding → 3.1 Pro>];
+
+  decide -> primary -> q;
+  q -> answer [label="no"];
+  q -> backup [label="yes", color="#d97706", fontcolor="#d97706"];
+  backup -> answer [label="🔁", color="#d97706"];
+  sim -> primary [style=dashed, color="#f04d23", arrowhead=vee];
+  map -> backup [style=dotted, arrowhead=none];
+
+  {rank=same; primary; sim;}
+  {rank=same; backup; map;}
+}

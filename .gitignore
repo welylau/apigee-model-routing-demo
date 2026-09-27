@@ -1,0 +1,19 @@
+# Local-only helpers: they contain the real project values
+sanitize.sh
+restore.sh
+.sanitize.map
+
+# Python / Node / OS
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+.DS_Store
+*.log
+
+# Model weights are downloaded at build time (~700 MB)
+prompt-classifier/models/
+
+# Local work files
+scratch/
+apigee-proxies/pulled/

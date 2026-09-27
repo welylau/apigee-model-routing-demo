@@ -1,0 +1,31 @@
+// Preset Rules Engine (rulesVerdict in apiproxy/resources/jsc/decide-route.js).
+// Length-only heuristic; thresholds from routing.properties (rules_simple_max_chars, rules_complex_min_chars).
+// Render: dot -Tpng -Gdpi=180 docs/decide-route-logic.dot -o docs/decide-route-logic.png
+digraph RulesEngine {
+  graph [rankdir=LR, fontname="Helvetica", fontsize=15, bgcolor="white", pad=0.4, nodesep=0.6, ranksep=0.55,
+         label=<<b>📏 Preset Rules Engine</b>  <font point-size="11" color="#5f6368">JS-DecideRoute in Apigee · prompt length only · confidence 1.0 · also the fallback for every other strategy</font>>, labelloc=t, fontcolor="#202124"];
+  node  [fontname="Helvetica", fontsize=12, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#dadce0", penwidth=1.4, margin="0.2,0.1"];
+  edge  [fontname="Helvetica", fontsize=11, color="#80868b", fontcolor="#5f6368", arrowsize=0.8];
+
+  prompt [group=g, label="💬 Prompt", fillcolor="#e8f0fe", color="#1a73e8"];
+
+  q1 [group=g, label=<Shorter than<br/><b>160</b> chars?>, shape=diamond, style=filled, fillcolor="#fef7e0", color="#f9ab00", fontsize=11];
+  q2 [group=g, label=<At least<br/><b>1,500</b> chars?>, shape=diamond, style=filled, fillcolor="#fef7e0", color="#f9ab00", fontsize=11];
+
+  simple   [label=<<b>Simple</b><br/><font point-size="10">Gemini 3.5 Flash-Lite</font>>, fillcolor="#ecfdf5", color="#059669"];
+  complex  [label=<<b>Complex</b><br/><font point-size="10">Gemini 3.1 Pro</font><br/><font point-size="9" color="#5f6368">thinking: high</font>>, fillcolor="#f3e8ff", color="#7c3aed"];
+  standard [group=g, label=<<b>Standard</b><br/><font point-size="10">Gemini 3.5 Flash</font>>, fillcolor="#e8f0fe", color="#1a73e8"];
+
+  note [shape=note, style=filled, fillcolor="#f8f9fa", color="#dadce0", fontsize=10, fontcolor="#5f6368",
+        label=<Models shown are defaults (routing.properties).<br/>Override per tier with Customize → x-preferred-model-&lt;tier&gt;.<br/>The rules never select the <b>Coding</b> tier.>];
+
+  prompt -> q1 [weight=10];
+  q1 -> q2 [label="no", weight=10];
+  q2 -> standard [label="no", weight=10];
+  q1 -> simple  [label="yes"];
+  q2 -> complex [label="yes"];
+
+  {rank=same; q1; simple;}
+  {rank=same; q2; complex;}
+  standard -> note [style=invis];
+}

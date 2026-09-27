@@ -1,0 +1,38 @@
+// NVIDIA NemoCurator Complexity Classifier strategy (SC-ClassifierEngine + parseNvidia in decide-route.js).
+// Rules are evaluated top-down; first match wins. Thresholds from routing.properties (nvidia_*), defaults shown.
+// Render: dot -Tpng -Gdpi=180 docs/nvidia-logic.dot -o docs/nvidia-logic.png
+digraph NvidiaClassifier {
+  graph [rankdir=LR, fontname="Helvetica", fontsize=15, bgcolor="white", pad=0.4, nodesep=0.3, ranksep=0.55, compound=true,
+         label=<<b><font color="#76B900">NVIDIA</font> NemoCurator Complexity Classifier</b>  <font point-size="11" color="#5f6368">DeBERTa-v3 on Cloud Run scores the prompt · Apigee maps scores to a tier</font>>, labelloc=t, fontcolor="#202124"];
+  node  [fontname="Helvetica", fontsize=12, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#dadce0", penwidth=1.4, margin="0.2,0.1"];
+  edge  [fontname="Helvetica", fontsize=11, color="#80868b", fontcolor="#5f6368", arrowsize=0.8];
+
+  prompt [label="💬 Prompt", fillcolor="#e8f0fe", color="#1a73e8"];
+
+  subgraph cluster_apigee {
+    label=<<b>Apigee X · llm-router proxy</b>>; labeljust=l; fontsize=12; fontcolor="#e8710a";
+    style="rounded,dashed"; color="#e8710a"; penwidth=1.4; bgcolor="#fff8f1"; margin=18;
+
+    sc [label=<<b>ServiceCallout</b><br/><font point-size="10" color="#5f6368">SC-ClassifierEngine</font><br/><font point-size="9" color="#5f6368">TargetServer classifier-engine<br/>Google ID token · 3 s timeout · first 4,000 chars</font>>, fillcolor="#fef1e6", color="#e8710a"];
+    gate [label=<<b>JS-DecideRoute</b><br/><font point-size="9" color="#5f6368">task_prob ≥ 0.2?<br/>then first match wins</font>>, shape=diamond, style=filled, fillcolor="#fef7e0", color="#f9ab00", fontsize=11];
+  }
+
+  cloudrun [label=<<b>Cloud Run (private)</b><br/><font point-size="10" color="#137333"><b>NVIDIA NemoCurator classifier</b></font><br/><font point-size="9" color="#5f6368">DeBERTa-v3 · CPU · ~35 ms<br/>task_type · task_prob · complexity · reasoning<br/>creativity · domain_knowledge · constraints</font>>, fillcolor="#e6f4ea", color="#137333"];
+
+  coding   [label=<<b>① Coding</b><br/><font point-size="10">Gemini 2.5 Pro</font><br/><font point-size="8" color="#5f6368">task = Code Generation or System Design · thinking: medium</font>>, fillcolor="#fffbeb", color="#d97706"];
+  complex  [label=<<b>② Complex</b><br/><font point-size="10">Gemini 3.1 Pro</font><br/><font point-size="8" color="#5f6368">reasoning ≥ 0.4, or domain ≥ 0.9 &amp; constraints ≥ 0.45 · thinking: high</font>>, fillcolor="#f3e8ff", color="#7c3aed"];
+  simple   [label=<<b>③ Simple</b><br/><font point-size="10">Gemini 3.5 Flash-Lite</font><br/><font point-size="8" color="#5f6368">complexity &lt; 0.15 &amp; reasoning &lt; 0.2</font>>, fillcolor="#ecfdf5", color="#059669"];
+  standard [label=<<b>④ Standard</b><br/><font point-size="10">Gemini 3.5 Flash</font><br/><font point-size="8" color="#5f6368">everything else</font>>, fillcolor="#e8f0fe", color="#1a73e8"];
+  rules    [label=<<b>↩ Preset Rules Engine</b><br/><font point-size="10" color="#5f6368">error · timeout · missing score · task Unknown · task_prob &lt; 0.2</font>>, fillcolor="#f1f3f4", color="#80868b", style="rounded,filled,dashed"];
+
+  prompt -> sc;
+  sc -> cloudrun [dir=both, color="#137333", penwidth=1.8, constraint=false, arrowsize=0.9];
+  sc -> gate [weight=10];
+  prompt -> cloudrun [style=invis];
+
+  gate -> coding   [label="1"];
+  gate -> complex  [label="2"];
+  gate -> simple   [label="3"];
+  gate -> standard [label="4"];
+  gate -> rules    [label="fallback", style=dashed];
+}

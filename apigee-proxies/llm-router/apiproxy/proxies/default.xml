@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ProxyEndpoint name="default">
+    <Description>Entry point. /v1/chat routes and calls the model; /v1/route returns the routing decision only (dry run). /v1/stream is served by the separate 'stream' ProxyEndpoint.</Description>
+    <DefaultFaultRule name="default-fault">
+        <Step>
+            <Name>AM-FaultResponse</Name>
+            <Condition>fault.name != "RaiseFault"</Condition>
+        </Step>
+        <AlwaysEnforce>true</AlwaysEnforce>
+    </DefaultFaultRule>
+    <PreFlow name="PreFlow">
+        <Request>
+            <Step>
+                <Name>VA-VerifyAPIKey</Name>
+            </Step>
+            <Step>
+                <Name>SA-SpikeArrest</Name>
+            </Step>
+            <!-- TODO(security): add Model Armor SanitizeUserPrompt here to screen prompt injection / sensitive data before routing. -->
+        </Request>
+        <Response/>
+    </PreFlow>
+    <Flows>
+        <Flow name="chat-or-route">
+            <Description>Decide which model should serve the prompt.</Description>
+            <Condition>request.verb = "POST" and (proxy.pathsuffix MatchesPath "/v1/chat" or proxy.pathsuffix MatchesPath "/v1/route")</Condition>
+            <Request>
+                <Step>
+                    <Name>JS-PrepareRequest</Name>
+                </Step>
+                <Step>
+                    <Name>RF-BadRequest</Name>
+                    <Condition>llmr.has_prompt = "false"</Condition>
+                </Step>
+                <Step>
+                    <Name>RF-PayloadTooLarge</Name>
+                    <Condition>llmr.too_large = "true"</Condition>
+                </Step>
+                <Step>
+                    <Name>SC-Classifier</Name>
+                    <Condition>llmr.strategy = "classifier"</Condition>
+                </Step>
+                <Step>
+                    <Name>SC-ClassifierEngine</Name>
+                    <Condition>llmr.strategy = "nvidia"</Condition>
+                </Step>
+                <Step>
+                    <Name>SC-ExternalEngine</Name>
+                    <Condition>llmr.strategy = "external"</Condition>
+                </Step>
+                <Step>
+                    <Name>JS-DecideRoute</Name>
+                </Step>
+            </Request>
+            <Response/>
+        </Flow>
+        <Flow name="not-found">
+            <Request>
+                <Step>
+                    <Name>RF-NotFound</Name>
+                </Step>
+            </Request>
+            <Response/>
+        </Flow>
+    </Flows>
+    <PostFlow name="PostFlow">
+        <Request/>
+        <Response>
+            <Step>
+                <Name>AM-DecisionResponse</Name>
+                <Condition>proxy.pathsuffix MatchesPath "/v1/route"</Condition>
+            </Step>
+            <Step>
+                <Name>EV-ExtractUsage</Name>
+                <Condition>proxy.pathsuffix MatchesPath "/v1/chat"</Condition>
+            </Step>
+            <Step>
+                <Name>AM-RouteHeaders</Name>
+            </Step>
+            <Step>
+                <Name>DC-RoutingAnalytics</Name>
+            </Step>
+        </Response>
+    </PostFlow>
+    <HTTPProxyConnection>
+        <BasePath>/llm-router</BasePath>
+    </HTTPProxyConnection>
+    <RouteRule name="dry-run">
+        <Condition>proxy.pathsuffix MatchesPath "/v1/route"</Condition>
+    </RouteRule>
+    <RouteRule name="gemma">
+        <Condition>llmr.is_gemma = "true"</Condition>
+        <TargetEndpoint>gemma</TargetEndpoint>
+    </RouteRule>
+    <RouteRule name="azure">
+        <Condition>llmr.is_azure = "true"</Condition>
+        <TargetEndpoint>azure</TargetEndpoint>
+    </RouteRule>
+    <RouteRule name="vertex">
+        <TargetEndpoint>vertex</TargetEndpoint>
+    </RouteRule>
+</ProxyEndpoint>
