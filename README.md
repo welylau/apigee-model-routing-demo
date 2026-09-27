@@ -207,7 +207,7 @@ curl -s -X POST "https://<your-apigee-host>/llm-router/v1/route" \
 * **🔌 Simulate model outage** with a *How it works?* explainer, and **View Architecture Diagram** in the left panel.
 * **Telemetry**: pipeline steps, routed model, confidence, reason, fallback / failover banners, tokens, per-request cost and latency.
 * **Session KPIs**: requests, routed cost, cost if every prompt went to the most expensive catalog model (Claude Sonnet 4.5), % saved, average latency and model mix. List prices and their sources are in [server.js](web-ui/server.js).
-* **BFF pattern**: the API key stays in the local Node process. The server listens on 127.0.0.1 only, sets a strict CSP, checks Origin/Host and allow-lists strategies and model ids. No npm dependencies.
+* **BFF pattern**: the API key stays in the Node process and never reaches the browser. Locally the server listens on 127.0.0.1 only; on Cloud Run it sits behind Identity-Aware Proxy (IAP) and reads the key from Secret Manager. It sets a strict CSP, checks Origin/Host and allow-lists strategies and model ids. No npm dependencies.
 
 ---
 
@@ -239,6 +239,8 @@ apigee-model-routing-demo/
 ├── web-ui/                                # Demo web app (Node.js 18+, zero dependencies)
 │   ├── server.js                          # BFF: holds the API key, price list, allow-lists
 │   ├── run.sh                             # fetches the app key via apigeecli, starts the server
+│   ├── Dockerfile                         # container image for Cloud Run (node:22-slim, non-root)
+│   ├── deploy-cloudrun.sh                 # deploys the UI to Cloud Run behind IAP
 │   └── public/                            # index.html, app.js, styles.css, assets/
 │
 └── docs/                                  # Graphviz sources (.dot) and rendered diagrams (.png)
@@ -358,13 +360,59 @@ HOST=$APIGEE_HOST ORG=$ORG ./scripts/demo.sh chat    # real model calls
 
 The script runs the three strategies side by side on simple / standard / complex / coding prompts, plus a prompt-injection attempt against the router.
 
-### Step 7: Launch the web UI
+### Step 7a: Launch the web UI locally
 
 ```bash
 cd web-ui
 ORG=$ORG APIGEE_HOST=$APIGEE_HOST ./run.sh   # fetches the app key via apigeecli
 # open http://localhost:8080
 ```
+
+### Step 7b (optional): Deploy the web UI to Cloud Run behind IAP
+
+To share the demo without making it public, use [deploy-cloudrun.sh](web-ui/deploy-cloudrun.sh). It builds the UI from source and deploys it as a private Cloud Run service protected by [IAP for Cloud Run](https://cloud.google.com/run/docs/securing/identity-aware-proxy-cloud-run):
+
+```bash
+PROJECT_ID=$PROJECT_ID ORG=$ORG APIGEE_ENV=$ENV APIGEE_HOST=$APIGEE_HOST \
+REGION=asia-southeast1 IAP_MEMBERS="user:you@example.com,group:team@example.com" \
+  ./web-ui/deploy-cloudrun.sh
+```
+
+What the script does (it is idempotent, so you can safely re-run it):
+
+1. Enables the Cloud Run, IAP, Secret Manager, Cloud Build and Artifact Registry APIs.
+2. Reads the `llm-router-premium-app` key with apigeecli and stores it in the Secret Manager secret `llm-router-ui-api-key`. The key is never printed. Set `ROTATE_KEY=1` to store a new version.
+3. Creates a dedicated runtime service account, `llm-router-ui-sa`, that can only read that secret.
+4. Runs `gcloud run deploy --source … --iap --no-allow-unauthenticated` and injects the key as `PREMIUM_KEY` from Secret Manager (1 vCPU, 512 MiB, scales to zero, max 2 instances).
+5. Grants `roles/run.invoker` to the IAP service agent (`service-PROJECT_NUMBER@gcp-sa-iap.iam.gserviceaccount.com`).
+6. Grants `roles/iap.httpsResourceAccessor` to every member in `IAP_MEMBERS`, then prints the service URL.
+
+Optional variables: `SERVICE` (default `llm-router-ui`), `APP_NAME`, `SECRET`, `CUSTOM_DOMAIN`.
+
+**Custom domain (optional).** Set `CUSTOM_DOMAIN=demo.example.com`. The script allow-lists the host in the server (`PUBLIC_HOSTS`) and creates a [Cloud Run domain mapping](https://cloud.google.com/run/docs/mapping-custom-domains). The domain must be verified for your account (`gcloud domains verify example.com`). Then add the DNS record the script prints, for example with Cloud DNS:
+
+```bash
+gcloud dns record-sets create demo.example.com. --zone YOUR_ZONE --type CNAME --ttl 300 --rrdatas ghs.googlehosted.com.
+gcloud beta run domain-mappings describe --domain demo.example.com --region "$REGION"   # wait for the certificate
+```
+
+IAP applies to the custom domain too, because it is enabled on the service itself. The managed certificate usually takes 15–60 minutes.
+
+To manage who can open the UI later:
+
+```bash
+# add a user
+gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service=llm-router-ui \
+  --region="$REGION" --member="user:colleague@example.com" --role=roles/iap.httpsResourceAccessor
+# remove a user
+gcloud iap web remove-iam-policy-binding --resource-type=cloud-run --service=llm-router-ui \
+  --region="$REGION" --member="user:colleague@example.com" --role=roles/iap.httpsResourceAccessor
+# list members
+gcloud iap web get-iam-policy --resource-type=cloud-run --service=llm-router-ui --region="$REGION"
+```
+
+> [!NOTE]
+> Unauthenticated requests are redirected to Google sign-in, and signed-in users who are not in `IAP_MEMBERS` get a 403. If your organisation enforces domain-restricted sharing (`iam.allowedPolicyMemberDomains`), members must belong to an allowed domain.
 
 ### Step 8 (optional): Analytics custom report
 
@@ -404,6 +452,7 @@ Switch to **Static Routing** and pin GPT-4.1 Nano (Azure) or Claude Sonnet 4.5. 
 * Generic error bodies (backend details masked); route headers sanitised to printable ASCII.
 * Gateway-only headers (`x-api-key`, `x-router-strategy`, `x-preferred-model*`, `x-simulate-outage`) are removed before every backend call, including Azure.
 * Secrets: the Azure key lives in an Apigee KVM; Cloud Run services are private and accept only the proxy service account's ID token.
+* Hosted web UI: runs on Cloud Run with IAP and `--no-allow-unauthenticated`. The Apigee app key sits in Secret Manager and only a dedicated runtime service account can read it. The container runs as a non-root user. On Cloud Run the server accepts only its own `*.run.app` host; add custom domains with `PUBLIC_HOSTS`.
 * Outage simulation never sends credentials to a different host (same host, bogus path). Disable it in production with `allow_outage_simulation=false`.
 * **Production to-dos:** add Model Armor (`SanitizeUserPrompt`) before routing, and authentication for the external decision engine.
 
@@ -424,6 +473,14 @@ for d in dc_routed_model dc_route_tier dc_route_decided_by dc_route_decision_ms 
 
 gcloud run services delete prompt-classifier --region "$REGION" --quiet
 gcloud run services delete gemma2-api --region "$REGION" --quiet
+
+# hosted web UI (Step 7b); deleting the service also removes its IAP bindings
+gcloud run services delete llm-router-ui --region "$REGION" --quiet
+gcloud secrets delete llm-router-ui-api-key --quiet
+gcloud iam service-accounts delete "llm-router-ui-sa@$PROJECT_ID.iam.gserviceaccount.com" --quiet
+# if you used CUSTOM_DOMAIN
+gcloud beta run domain-mappings delete --domain demo.example.com --region "$REGION" --quiet
+gcloud dns record-sets delete demo.example.com. --zone YOUR_ZONE --type CNAME
 ```
 
 > [!CAUTION]

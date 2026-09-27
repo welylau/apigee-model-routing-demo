@@ -17,3 +17,6 @@ prompt-classifier/models/
 # Local work files
 scratch/
 apigee-proxies/pulled/
+
+# Cloud Run build staging (web-ui/deploy-cloudrun.sh)
+web-ui/.build/

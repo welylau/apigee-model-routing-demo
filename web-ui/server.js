@@ -5,7 +5,10 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const HOST = '127.0.0.1'; // local demo only; never bind 0.0.0.0
+// Local runs bind to loopback only. The Cloud Run image sets BIND_HOST=0.0.0.0, where IAP + Cloud Run IAM front the service.
+const HOST = process.env.BIND_HOST || '127.0.0.1';
+// Cloud Run sets K_SERVICE; used to accept the service's own https://*.run.app host (see trustedRequest).
+const ON_CLOUD_RUN = Boolean(process.env.K_SERVICE);
 const PORT = parseInt(process.env.PORT || '8080', 10);
 const APIGEE_BASE = (process.env.APIGEE_HOST || 'https://YOUR_APIGEE_HOST').replace(/\/$/, '') + '/llm-router/v1';
 // The demo always calls Apigee as one developer app (llm-router-premium-app); the UI has no app/plan concept.
@@ -65,11 +68,13 @@ const ORG = process.env.ORG || 'YOUR_PROJECT_ID';
 const ENV = process.env.APIGEE_ENV || 'default-dev';
 
 // Rules engine config, read from the proxy bundle (single source of truth) for the "View Rules" dialog.
+// The container image ships a copy and sets RULES_FILE.
 const BUNDLE = path.join(__dirname, '..', 'apigee-proxies', 'llm-router', 'apiproxy', 'resources');
+const RULES_FILE = process.env.RULES_FILE || path.join(BUNDLE, 'properties', 'routing.properties');
 function loadRules() {
   try {
     const props = {};
-    fs.readFileSync(path.join(BUNDLE, 'properties', 'routing.properties'), 'utf8').split(/\r?\n/).forEach(l => {
+    fs.readFileSync(RULES_FILE, 'utf8').split(/\r?\n/).forEach(l => {
       const m = l.match(/^\s*([a-z_]+)\s*=\s*(.*?)\s*$/);
       if (m) props[m[1]] = m[2];
     });
@@ -120,12 +125,19 @@ function send(res, status, body, type) {
 }
 
 // Anti-CSRF / DNS-rebinding: only accept same-origin requests addressed to our own host.
+// Local: http://127.0.0.1|localhost:PORT. Cloud Run: the service's own https://*.run.app URL, plus any
+// custom domains listed in PUBLIC_HOSTS (comma-separated). Cloud Run only routes its own hosts to the container.
+const LOCAL_HOSTS = [`127.0.0.1:${PORT}`, `localhost:${PORT}`];
+const PUBLIC_HOSTS = (process.env.PUBLIC_HOSTS || '').split(',').map(h => h.trim().toLowerCase()).filter(Boolean);
+const RUN_APP_HOST = /^[a-z0-9-]+(\.[a-z0-9-]+)*\.run\.app$/;
 function trustedRequest(req) {
-  const allowedHosts = [`127.0.0.1:${PORT}`, `localhost:${PORT}`];
-  if (!allowedHosts.includes(req.headers.host)) return false;
+  const host = String(req.headers.host || '').toLowerCase();
+  const local = LOCAL_HOSTS.includes(host);
+  const remote = !local && (PUBLIC_HOSTS.includes(host) || (ON_CLOUD_RUN && RUN_APP_HOST.test(host)));
+  if (!local && !remote) return false;
   if (req.method === 'POST') {
-    const origin = req.headers.origin;
-    if (!origin || !allowedHosts.map(h => `http://${h}`).includes(origin)) return false;
+    const expected = (local ? 'http://' : 'https://') + host;
+    if (req.headers.origin !== expected) return false;
     if (!(req.headers['content-type'] || '').startsWith('application/json')) return false;
   }
   return true;
