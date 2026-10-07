@@ -30,6 +30,7 @@ const MAX_PROMPT_CHARS = 20000;
 //              (non-global regional endpoints are ~10% higher for Gemini 3.5)
 //   Azure      https://prices.azure.com/api/retail/prices  "gpt 4.1 nano Inp/Outp glbl Tokens" (Global Standard)
 //   Gemma 2:2b is self-hosted on Cloud Run: no per-token charge (you pay for Cloud Run compute).
+//   GLM 5.2    Vertex AI MaaS (Z.ai, global endpoint): $1.40 in / $4.40 out (cached input $0.14), checked 2026-10-07.
 // Model ids must match what the backends actually serve (verified via the gateway):
 //   Gemini 3.1 Pro is only available as 'gemini-3.1-pro-preview'; Claude 3.5 Sonnet is retired on Vertex.
 const CATALOG = {
@@ -40,6 +41,7 @@ const CATALOG = {
   'claude-sonnet-4-5@20250929': { id: 'claude-sonnet-4-5@20250929', label: 'Claude Sonnet 4.5', cost: '$$$$', price: { in: 3.00, out: 15.00 } },
   'gemini-3.1-pro-preview': { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro', cost: '$$$', price: { in: 2.00, out: 12.00 } },
   'grok-4.6@001': { id: 'grok-4.6@001', label: 'Grok 4.6', cost: '$$', price: { in: 2.00, out: 6.00 } },
+  'glm-5.2': { id: 'glm-5.2', label: 'GLM 5.2', cost: '$$', price: { in: 1.40, out: 4.40 } },
   'gemini-2.5-pro': { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', cost: '$$$', price: { in: 1.25, out: 10.00 } }
 };
 
@@ -195,6 +197,24 @@ function sanitizePrefs(prefs) {
   return out;
 }
 
+// GLM 5.2 with a 16k-token budget can take ~3 min; the Apigee target and LB allow longer.
+const GATEWAY_TIMEOUT_MS = 180000;
+// Errors raised before the request reached Apigee, so retrying cannot duplicate an LLM call.
+const CONNECT_ERRORS = new Set(['UND_ERR_CONNECT_TIMEOUT', 'ECONNREFUSED', 'EHOSTUNREACH', 'ENETUNREACH', 'ENOTFOUND', 'EAI_AGAIN']);
+
+async function fetchGateway(url, init) {
+  const signal = AbortSignal.timeout(GATEWAY_TIMEOUT_MS);
+  try {
+    return await fetch(url, Object.assign({}, init, { signal }));
+  } catch (e) {
+    const code = e && e.cause && e.cause.code;
+    if (!CONNECT_ERRORS.has(code) || signal.aborted) throw e;
+    console.warn(`Gateway connect failed (${code}); retrying once`);
+    await new Promise(r => setTimeout(r, 300));
+    return fetch(url, Object.assign({}, init, { signal }));
+  }
+}
+
 function gatewayHeaders(input) {
   const headers = { 'Content-Type': 'application/json', 'x-api-key': API_KEY, 'x-router-strategy': input.strategy };
   for (const [tier, modelId] of Object.entries(input.prefs || {})) headers[`x-preferred-model-${tier}`] = modelId;
@@ -205,11 +225,10 @@ function gatewayHeaders(input) {
 async function callGateway(input) {
   const t0 = Date.now();
   const headers = gatewayHeaders(input);
-  const r = await fetch(`${APIGEE_BASE}/${input.mode}`, {
+  const r = await fetchGateway(`${APIGEE_BASE}/${input.mode}`, {
     method: 'POST',
     headers,
     body: JSON.stringify({ prompt: input.prompt }),
-    signal: AbortSignal.timeout(120000),
   });
   const latencyMs = Date.now() - t0;
   const text = await r.text();
@@ -225,6 +244,8 @@ async function callGateway(input) {
     if (r.ok && json) {
       const parts = (((json.candidates || [])[0] || {}).content || {}).parts || [];
       out.answer = parts.filter(p => typeof p.text === 'string' && !p.thought).map(p => p.text).join('');
+      const reasoning = parts.filter(p => typeof p.text === 'string' && p.thought).map(p => p.text).join('');
+      if (reasoning) out.reasoning = reasoning;
       out.usage = usageFrom(json.usageMetadata);
     }
   }
@@ -236,11 +257,10 @@ async function callGateway(input) {
 async function streamGateway(input, res) {
   const t0 = Date.now();
   const emit = obj => res.write(JSON.stringify(obj) + '\n');
-  const r = await fetch(`${APIGEE_BASE}/stream`, {
+  const r = await fetchGateway(`${APIGEE_BASE}/stream`, {
     method: 'POST',
     headers: gatewayHeaders(input),
     body: JSON.stringify({ prompt: input.prompt }),
-    signal: AbortSignal.timeout(120000),
   });
   res.writeHead(200, Object.assign({ 'Content-Type': 'application/x-ndjson; charset=utf-8' }, SECURITY_HEADERS));
   const headersMs = Date.now() - t0;
@@ -268,6 +288,9 @@ async function streamGateway(input, res) {
       let ev;
       try { ev = JSON.parse(line.slice(5).trim()); } catch (e) { continue; }
       const parts = (((ev.candidates || [])[0] || {}).content || {}).parts || [];
+      // Reasoning models (e.g. GLM 5.2 on Vertex AI MaaS) return their thinking as Gemini "thought" parts.
+      const reasoning = parts.filter(p => typeof p.text === 'string' && p.thought).map(p => p.text).join('');
+      if (reasoning) emit({ type: 'reasoning', text: reasoning });
       const text = parts.filter(p => typeof p.text === 'string' && !p.thought).map(p => p.text).join('');
       if (text) {
         if (ttftMs === null) ttftMs = Date.now() - t0;

@@ -94,6 +94,11 @@
         <Condition>llmr.is_claude = "true"</Condition>
         <TargetEndpoint>vertex</TargetEndpoint>
     </RouteRule>
+    <!-- Vertex AI MaaS (OpenAI-compatible, e.g. GLM 5.2): non-streaming call; maas-response.js wraps the answer as SSE. -->
+    <RouteRule name="maas-stream">
+        <Condition>llmr.is_maas = "true"</Condition>
+        <TargetEndpoint>maas-stream</TargetEndpoint>
+    </RouteRule>
     <RouteRule name="vertex-stream">
         <TargetEndpoint>vertex-stream</TargetEndpoint>
     </RouteRule>

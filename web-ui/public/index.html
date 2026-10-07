@@ -38,7 +38,7 @@
       </div>
 
       <div class="arch-tags">
-        <div class="hero-pill" title="Apigee routes every prompt to the right model: Gemini · GPT · Claude · Grok · Gemma">
+        <div class="hero-pill" title="Apigee routes every prompt to the right model: Gemini · GPT · Claude · Grok · GLM · Gemma">
           <span class="logo-stack" id="logo-stack" aria-hidden="true"></span>
           <span class="hero-text">One Gateway. <span class="hero-accent">Any Model.</span> Right Route.</span>
         </div>
@@ -207,6 +207,10 @@
 
                 <div class="answer-box hidden" id="answer-box">
                   <div class="answer-head"><span>Model Response</span><span class="answer-model" id="answer-model"></span></div>
+                  <details class="reasoning-box hidden" id="reasoning-box">
+                    <summary><span>🧠 Model reasoning</span><span class="reasoning-meta" id="reasoning-meta"></span></summary>
+                    <div id="reasoning" class="reasoning-text" role="region" aria-label="Model reasoning"></div>
+                  </details>
                   <div id="answer" class="answer-text" role="region" aria-live="polite" aria-label="Model response"></div>
                 </div>
 

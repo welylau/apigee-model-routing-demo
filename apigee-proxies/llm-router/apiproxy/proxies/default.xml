@@ -96,6 +96,10 @@
         <Condition>llmr.is_azure = "true"</Condition>
         <TargetEndpoint>azure</TargetEndpoint>
     </RouteRule>
+    <RouteRule name="maas">
+        <Condition>llmr.is_maas = "true"</Condition>
+        <TargetEndpoint>maas</TargetEndpoint>
+    </RouteRule>
     <RouteRule name="vertex">
         <TargetEndpoint>vertex</TargetEndpoint>
     </RouteRule>

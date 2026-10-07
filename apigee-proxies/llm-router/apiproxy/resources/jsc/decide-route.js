@@ -196,11 +196,30 @@ var isAzure = model.indexOf('gpt-4') >= 0;
 var isGemma = model.indexOf('gemma') >= 0;
 var isGrok = model.indexOf('grok') >= 0;
 
+// Vertex AI MaaS (open models served by Google on the OpenAI-compatible endpoint), allow-listed in
+// routing.properties as "maas_models=<short id>|<publisher model id>,...".
+var maasModelId = '';
+var maasList = String(context.getVariable('propertyset.routing.maas_models') || '').split(',');
+for (var mi = 0; mi < maasList.length; mi++) {
+  var pair = maasList[mi].split('|');
+  if (pair.length === 2 && pair[0].trim() === model) maasModelId = pair[1].trim();
+}
+var isMaas = maasModelId !== '';
+if (isMaas) { isClaude = false; isAzure = false; isGemma = false; isGrok = false; } // allow-list wins over name matching
+
 context.setVariable('llmr.is_claude', isClaude ? 'true' : 'false');
 context.setVariable('llmr.is_azure', isAzure ? 'true' : 'false');
 context.setVariable('llmr.is_gemma', isGemma ? 'true' : 'false');
+context.setVariable('llmr.is_maas', isMaas ? 'true' : 'false');
 
-if (isAzure) {
+if (isMaas) {
+  // One OpenAI-compatible endpoint for every MaaS model; the model is chosen by the "model" field (maas-request.js).
+  context.setVariable('llmr.publisher', maasModelId.split('/')[0]);
+  context.setVariable('llmr.maas_model_id', maasModelId);
+  context.setVariable('llmr.target_location', context.getVariable('propertyset.routing.maas_location') || 'global');
+  context.setVariable('llmr.target_host', 'aiplatform.googleapis.com');
+  context.setVariable('llmr.target_url', 'https://' + context.getVariable('llmr.target_host') + '/v1/projects/' + context.getVariable('propertyset.routing.project') + '/locations/' + context.getVariable('llmr.target_location') + '/endpoints/openapi/chat/completions');
+} else if (isAzure) {
   // Azure AI Foundry Custom Endpoint
   context.setVariable('llmr.publisher', 'azure');
   context.setVariable('llmr.target_url', 'https://YOUR_AZURE_RESOURCE.services.ai.azure.com/openai/v1/chat/completions');
@@ -243,7 +262,7 @@ var simulate = context.getVariable('propertyset.routing.allow_outage_simulation'
   String(context.getVariable('request.header.x-simulate-outage') || '').toLowerCase().trim() === 'primary';
 if (simulate) {
   var turl = context.getVariable('llmr.target_url');
-  turl = (isAzure || isGemma)
+  turl = (isAzure || isGemma || isMaas)
     ? turl.replace(/\/chat\/completions$/, '/simulated-outage')
     : turl.replace('/models/' + model, '/models/' + model + '-simulated-outage');
   context.setVariable('llmr.target_url', turl);

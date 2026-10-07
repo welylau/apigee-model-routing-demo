@@ -2,7 +2,7 @@
 ### One Gateway. Any Model. Right Route. Cost-aware, pluggable model routing with failover for GenAI apps
 
 [![Apigee X](https://img.shields.io/badge/Google%20Cloud-Apigee%20X-4285F4?logo=googlecloud&logoColor=white)](https://cloud.google.com/apigee)
-[![Vertex AI](https://img.shields.io/badge/Vertex%20AI-Gemini%203.x%20%7C%20Claude%20%7C%20Grok-EA4335?logo=googlecloud&logoColor=white)](https://cloud.google.com/vertex-ai)
+[![Vertex AI](https://img.shields.io/badge/Vertex%20AI-Gemini%203.x%20%7C%20Claude%20%7C%20Grok%20%7C%20GLM-EA4335?logo=googlecloud&logoColor=white)](https://cloud.google.com/vertex-ai)
 [![Azure AI Foundry](https://img.shields.io/badge/Azure%20AI%20Foundry-GPT--4.1%20Nano-0078D4?logo=microsoftazure&logoColor=white)](https://ai.azure.com)
 [![NVIDIA NemoCurator](https://img.shields.io/badge/NVIDIA-NemoCurator%20Classifier-76B900?logo=nvidia&logoColor=white)](https://huggingface.co/nvidia/prompt-task-and-complexity-classifier)
 [![Cloud Run](https://img.shields.io/badge/Deployment-Cloud%20Run-4285F4?logo=googlecloud&logoColor=white)](https://cloud.google.com/run)
@@ -47,7 +47,7 @@ Most GenAI apps hard-code one model. Pick a premium model and you overpay for "W
                                                   └─────────────┬─────────────┘
                                    ┌────────────────────────────┼──────────────────────┐
                                    ▼                            ▼                      ▼
-                          Gemini 3.5 Flash-Lite        Gemini 3.1 Pro / 2.5 Pro   Claude · Grok · GPT · Gemma
+                          Gemini 3.5 Flash-Lite        Gemini 3.1 Pro / 2.5 Pro   Claude · Grok · GLM · GPT · Gemma
   • Cost-aware: each prompt goes to the cheapest model that can handle it.
   • Pluggable: swap the decision strategy or the tier → model mapping without touching clients.
   • Resilient: if the chosen model fails, Apigee retries once on a backup Gemini model.
@@ -62,7 +62,7 @@ Most GenAI apps hard-code one model. Pick a premium model and you overpay for "W
 2. **Static routing**:
    * The client pins a model with `x-preferred-model`. Apigee skips the decision and routes straight to it: same API, same key, same telemetry.
 3. **Multi-provider backends behind one API**:
-   * Gemini, Claude and Grok on **Vertex AI**, GPT-4.1 Nano on **Azure AI Foundry** and Gemma 2 on **Cloud Run**. Apigee translates requests and responses to and from the Gemini format, so clients see one schema.
+   * Gemini, Claude and Grok on **Vertex AI**, the open model GLM 5.2 as a fully managed **Vertex AI MaaS** API, GPT-4.1 Nano on **Azure AI Foundry** and Gemma 2 on **Cloud Run**. Apigee translates requests and responses to and from the Gemini format, so clients see one schema.
 4. **Model failover**:
    * If the chosen model returns 404, 408, 429 or 5xx, Apigee retries **once** on the tier's backup Gemini model and returns that answer with `x-route-failover-*` headers.
 5. **Routing telemetry and cost visibility**:
@@ -126,11 +126,31 @@ All of these live in [routing.properties](apigee-proxies/llm-router/apiproxy/res
 | :--- | :--- | :--- |
 | Gemini 3.5 Flash-Lite, 3.5 Flash, 3.1 Pro (preview), 2.5 Pro | Vertex AI | `generateContent` / `streamGenerateContent` |
 | Grok 4.6 | Vertex AI Model Garden (xAI) | |
+| GLM 5.2 (`glm-5.2`) | Vertex AI MaaS (Z.ai open model, fully managed, global OpenAI-compatible `chat/completions`) | Opt-in only. Generic `maas` target; reasoning shown as Gemini `thought` parts; `max_tokens` floor |
 | Claude Sonnet 4.5 | Vertex AI (Anthropic, `us-east5`) | `rawPredict`; translated to/from the Gemini format |
 | GPT-4.1 Nano | Azure AI Foundry (`/openai/v1/chat/completions`) | Key from KVM `azure-secrets`; translated to/from the Gemini format; `x-ratelimit-*` headers stripped |
 | Gemma 2 2B | Cloud Run (Ollama), Google ID token | Demo only (small CPU instance) |
 
-Claude, GPT and Gemma answers arrive as one SSE event on `/v1/stream`.
+Claude, GPT, GLM and Gemma answers arrive as one SSE event on `/v1/stream`.
+
+### Vertex AI MaaS: open models as a managed service (GLM 5.2)
+
+Model Garden offers many open models in two forms: **self-deploy** (you run the weights on your own endpoint, as with Gemma on Cloud Run here) or **API Service / MaaS** (Google hosts it; you pay per token). GLM 5.2 uses the MaaS form.
+
+* **One generic target, allow-listed in properties.** `maas_models=glm-5.2|zai-org/glm-5.2-maas` in [routing.properties](apigee-proxies/llm-router/apiproxy/resources/properties/routing.properties) maps a short id to the publisher model id. To add DeepSeek, Qwen, Llama or Kimi MaaS models, add `,<id>|<publisher>/<model>-maas`. No code changes; enable the model in Model Garden first.
+* **Translation.** [maas-request.js](apigee-proxies/llm-router/apiproxy/resources/jsc/maas-request.js) converts Gemini to OpenAI format. [maas-response.js](apigee-proxies/llm-router/apiproxy/resources/jsc/maas-response.js) converts back and turns `reasoning_content` into a Gemini `{ text, thought: true }` part. The web UI shows it under 🧠 **Model reasoning**.
+* **Reasoning-model guardrail.** GLM thinks before it answers. With a small `max_tokens` the answer comes back empty, so the proxy raises `max_tokens` to at least `maas_min_max_tokens` (16384; complex prompts used ~3.5k-7.5k tokens, with 180 s timeouts to match). If the budget still runs out during reasoning, the answer says so instead of coming back blank.
+* **Same everything else.** It uses the same API key, the Gemini-format response, `x-route-*` headers, analytics and failover to the tier's backup Gemini model (`x-simulate-outage: primary` works too).
+* **Opt-in.** No tier uses GLM by default. Pick it in Static Routing, or send `x-preferred-model: glm-5.2` or `x-preferred-model-coding: glm-5.2`.
+
+```bash
+curl -s -X POST "$APIGEE_HOST/llm-router/v1/chat" -H "x-api-key: $KEY" \
+  -H "x-preferred-model: glm-5.2" -H "Content-Type: application/json" \
+  -d '{"prompt":"In one sentence: what is an API gateway?"}' \
+  | jq '{answer: [.candidates[0].content.parts[] | select(.thought != true) | .text] | join(""),
+         reasoning_chars: ([.candidates[0].content.parts[] | select(.thought == true) | .text] | join("") | length),
+         usage: .usageMetadata}'
+```
 
 ---
 
@@ -255,7 +275,7 @@ apigee-model-routing-demo/
 | Product / Service | Role in this demo | Notes |
 | :--- | :--- | :--- |
 | **Apigee X** | AI gateway: auth, rate limiting, routing decision, provider translation, failover, telemetry | Apigee X org with an environment attached to an environment group and external ingress |
-| **Vertex AI** | Gemini models (answers, classifier and failover), Claude (Anthropic) and Grok (xAI) via Model Garden | Enable the partner models you want in Model Garden; Claude runs in `us-east5` |
+| **Vertex AI** | Gemini models (answers, classifier and failover), Claude (Anthropic) and Grok (xAI) via Model Garden, GLM 5.2 (Z.ai) via MaaS | Enable the partner models you want in Model Garden; Claude runs in `us-east5`. For GLM, enable the **GLM 5.2 API Service** card (not the self-deploy **GLM 5.2** card) |
 | **Cloud Run** | Private hosting for the NVIDIA classifier and Gemma | `--no-allow-unauthenticated`; Apigee calls them with Google ID tokens |
 | **IAM** | Proxy service account | `roles/aiplatform.user` on the project; `roles/run.invoker` on both Cloud Run services |
 | **Apigee Analytics** | Custom report on model mix, tiers and tokens | Via data collectors |
@@ -502,7 +522,7 @@ gcloud dns record-sets delete demo.example.com. --zone YOUR_ZONE --type CNAME
 
 ## 📄 License
 
-Licensed under the [Apache License 2.0](LICENSE). Third-party models and services (NVIDIA NemoCurator classifier, Gemma, Claude, Grok, GPT-4.1) are subject to their own licences and terms.
+Licensed under the [Apache License 2.0](LICENSE). Third-party models and services (NVIDIA NemoCurator classifier, Gemma, Claude, Grok, GLM, GPT-4.1) are subject to their own licences and terms.
 
 > [!NOTE]
 > This is a demo, not an official Google product. Model prices shown in the UI are public list prices for illustration only.

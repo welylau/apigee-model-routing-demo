@@ -69,6 +69,7 @@ digraph Architecture {
       <table border="0" cellborder="0" cellspacing="2" cellpadding="1">
         <tr><td align="left"><b>Any catalog model</b></td></tr>
         <tr><td align="left"><font point-size="11">Vertex AI · Gemini, Claude, Grok</font></td></tr>
+        <tr><td align="left"><font point-size="11">Vertex AI MaaS · GLM 5.2 (open model)</font></td></tr>
         <tr><td align="left"><font point-size="11">Azure AI Foundry · GPT-4.1 Nano</font></td></tr>
         <tr><td align="left"><font point-size="11">Cloud Run · Gemma 2:2b</font></td></tr>
       </table>>];

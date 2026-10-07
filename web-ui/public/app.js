@@ -3,6 +3,7 @@ const LOGOS = {
   azure: '<svg viewBox="0 0 24 24" width="24" height="24"><path fill="#0078D4" d="M21 9l-4.5-2.5-1-6h-7l-1 6L3 9l2.5 5.5L3 20l7 2.5 7-2.5-2.5-5.5L21 9zM12 19.5L6.5 17.5l2-4.5-2.5-5 4.5 1.5 1.5 5 1.5-5 4.5-1.5-2.5 5 2 4.5L12 19.5z"/></svg>',
   anthropic: '<svg viewBox="0 0 24 24" width="24" height="24"><rect width="24" height="24" rx="4" fill="#d97757"/><path fill="#fff" d="M12 4L4 20h3.5l1.5-3h6l1.5 3H20L12 4zm-1.5 10l1.5-3 1.5 3h-3z"/></svg>',
   xai: '<svg viewBox="0 0 24 24" width="24" height="24"><rect width="24" height="24" rx="4" fill="#000"/><path fill="#fff" d="M6 5l4.5 7-4.5 7h2.5l3.5-5.5 3.5 5.5H18l-4.5-7 4.5-7h-2.5l-3.5 5.5L8.5 5H6z"/></svg>',
+  zai: '<svg viewBox="0 0 24 24" width="24" height="24"><rect width="24" height="24" rx="4" fill="#2d5bff"/><path fill="#fff" d="M6 6h12v2.2L9.2 16H18v2H6v-2.2L14.8 8H6z"/></svg>',
   default: '<svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" fill="#9ca3af"/><circle cx="12" cy="12" r="4" fill="#fff"/></svg>'
 };
 
@@ -127,18 +128,20 @@ function formatPrice(m) {
   return `$${m.price.in.toFixed(2)} / $${m.price.out.toFixed(2)}`;
 }
 
-// Self-hosted models on deliberately tiny hardware: flag them so slow answers aren't mistaken for gateway latency.
+// Models with expected slow answers: flag them so slow answers aren't mistaken for gateway latency.
+// gemma: self-hosted on deliberately tiny hardware; glm: reasoning model that thinks before answering.
 const DEMO_HARDWARE = {
-  gemma: 'Very small hardware (Cloud Run, CPU-only: 4 vCPU · 8 GiB, no GPU). For demonstration purposes only; expect slow responses.',
+  gemma: { full: 'Very small hardware (Cloud Run, CPU-only: 4 vCPU · 8 GiB, no GPU). For demonstration purposes only; expect slow responses.', short: 'Very small hardware · demo only' },
+  glm: { full: 'Reasoning model: thinks before it answers (shown under Model reasoning), so expect a longer wait. The answer arrives as one event.', short: 'Reasoning model · slower' },
 };
 // compact: short label for narrow table cells; full text stays available as the tooltip / accessible name.
 function demoHardwareWarning(id, compact) {
   const key = Object.keys(DEMO_HARDWARE).find(k => String(id).includes(k));
   if (!key) return null;
-  const full = DEMO_HARDWARE[key];
+  const { full, short } = DEMO_HARDWARE[key];
   return el('div', { class: 'demo-hw-warn', role: 'note', title: full, 'aria-label': full }, [
-    el('span', { 'aria-hidden': 'true', text: '⚠️' }),
-    el('span', { text: compact ? 'Very small hardware · demo only' : full }),
+    el('span', { 'aria-hidden': 'true', text: key === 'glm' ? '🧠' : '⚠️' }),
+    el('span', { text: compact ? short : full }),
   ]);
 }
 
@@ -696,6 +699,7 @@ async function runStream() {
   $('answer').textContent = 'Waiting for the routing decision…';
   $('answer').classList.remove('md');
   $('answer-model').textContent = '';
+  showReasoning('');
   setPipeline({ auth: 'ok', decide: 'run' });
 
   const r = { mode: 'chat', strategy: state.strategy, decision: {}, latencyMs: 0, status: 0 };
@@ -741,6 +745,8 @@ async function runStream() {
               : `Routed to ${routedLabel(dm, dm.tier)} — waiting for the answer…`;
             $('answer-model').textContent = r.decision.model ? `${r.decision.model} · ${getHostingPlatform(r.decision.model)}` : '';
           }
+        } else if (ev.type === 'reasoning') {
+          showReasoning(ev.text);
         } else if (ev.type === 'delta') {
           answer += ev.text;
           $('answer').classList.add('md');
@@ -997,7 +1003,7 @@ function renderMarkdown(box, src) {
 function renderLogoStack() {
   const box = $('logo-stack');
   if (!box) return;
-  [['gemini', 'Gemini & Gemma'], ['azure', 'GPT (Azure AI Foundry)'], ['anthropic', 'Claude'], ['xai', 'Grok']].forEach(([k, name]) => {
+  [['gemini', 'Gemini & Gemma'], ['azure', 'GPT (Azure AI Foundry)'], ['anthropic', 'Claude'], ['xai', 'Grok'], ['zai', 'GLM (Vertex AI MaaS)']].forEach(([k, name]) => {
     const chip = el('span', { class: 'logo-chip logo-' + k, title: name });
     chip.innerHTML = LOGOS[k]; // trusted inline SVG constants
     box.appendChild(chip);
@@ -1065,11 +1071,32 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// Collapsible "Model reasoning" panel above the answer. Reasoning models (e.g. GLM 5.2 on Vertex AI MaaS)
+// return their thinking as Gemini "thought" parts; Apigee passes it through untouched. Untrusted text: textContent only.
+function showReasoning(text) {
+  const box = $('reasoning-box');
+  if (!box) return;
+  const body = $('reasoning');
+  if (!text) {
+    box.classList.add('hidden');
+    box.open = false;
+    body.textContent = '';
+    $('reasoning-meta').textContent = '';
+    return;
+  }
+  body.textContent += text;
+  const words = body.textContent.trim().split(/\s+/).length;
+  $('reasoning-meta').textContent = `~${words.toLocaleString()} words`;
+  box.classList.remove('hidden');
+}
+
 function getProviderLogo(id) {
   if (id.includes('gemini') || id.includes('gemma')) return LOGOS.gemini;
   if (id.includes('gpt')) return LOGOS.azure;
   if (id.includes('claude')) return LOGOS.anthropic;
   if (id.includes('grok')) return LOGOS.xai;
+  if (id.includes('glm')) return LOGOS.zai;
   return LOGOS.default;
 }
 
@@ -1085,18 +1112,18 @@ const TIER_DESC = {
 const SUITABILITY = {
   simple: {
     recommended: ['gemini-3.5-flash-lite', 'gpt-4.1-nano', 'gemma2:2b'],
-    unsuitable: ['gemini-3.1-pro-preview', 'grok-4.6@001', 'gemini-2.5-pro']
+    unsuitable: ['gemini-3.1-pro-preview', 'grok-4.6@001', 'gemini-2.5-pro', 'glm-5.2']
   },
   standard: {
     recommended: ['gemini-3.5-flash', 'claude-sonnet-4-5@20250929'],
     unsuitable: ['gemma2:2b', 'gpt-4.1-nano']
   },
   complex: {
-    recommended: ['gemini-3.1-pro-preview', 'grok-4.6@001'],
+    recommended: ['gemini-3.1-pro-preview', 'grok-4.6@001', 'glm-5.2'],
     unsuitable: ['gemma2:2b', 'gpt-4.1-nano', 'gemini-3.5-flash-lite']
   },
   coding: {
-    recommended: ['gemini-2.5-pro', 'claude-sonnet-4-5@20250929'],
+    recommended: ['gemini-2.5-pro', 'claude-sonnet-4-5@20250929', 'glm-5.2'],
     unsuitable: ['gemma2:2b', 'gpt-4.1-nano', 'gemini-3.5-flash-lite']
   }
 };
@@ -1105,6 +1132,7 @@ function getHostingPlatform(id) {
   if (id.includes('gemma')) return 'Cloud Run';
   if (id.includes('gpt')) return 'Azure AI Foundry';
   if (id.includes('grok')) return 'Vertex AI Model Garden';
+  if (id.includes('glm')) return 'Vertex AI MaaS';
   return 'Google Cloud Vertex';
 }
 
@@ -1113,6 +1141,7 @@ function getProviderName(id) {
   if (id.includes('gpt')) return 'OpenAI';
   if (id.includes('claude')) return 'Anthropic';
   if (id.includes('grok')) return 'xAI';
+  if (id.includes('glm')) return 'Z.ai';
   return 'Unknown';
 }
 

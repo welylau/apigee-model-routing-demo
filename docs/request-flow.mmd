@@ -5,7 +5,7 @@ flowchart LR
   P -->|classifier| SC1[SC-Classifier: gemini-3.5-flash-lite] --> D
   P -->|nvidia| SC2["SC-ClassifierEngine: NVIDIA NemoCurator on Cloud Run"] --> D
   D -->|"/v1/route (dry run)"| R[Decision JSON]
-  D -->|"/v1/chat, /v1/stream"| T["Vertex AI · Azure AI Foundry · Cloud Run"]
+  D -->|"/v1/chat, /v1/stream"| T["Vertex AI · Vertex AI MaaS (GLM) · Azure AI Foundry · Cloud Run"]
   T -->|error 404/408/429/5xx| F["SC-Failover: tier backup Gemini model"]
   T --> H[Route headers + DataCapture analytics]
   F --> H
