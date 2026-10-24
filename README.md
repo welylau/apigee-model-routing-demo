@@ -8,6 +8,9 @@
 [![Cloud Run](https://img.shields.io/badge/Deployment-Cloud%20Run-4285F4?logo=googlecloud&logoColor=white)](https://cloud.google.com/run)
 [![Node.js](https://img.shields.io/badge/Web%20UI-Node.js%2018%2B%20(zero%20deps)-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Demo video](https://img.shields.io/badge/YouTube-Demo%20video-FF0000?logo=youtube&logoColor=white)](https://youtu.be/wJjiBHx_ZSQ)
+
+📺 **[Watch the 2.5-minute demo video](https://youtu.be/wJjiBHx_ZSQ)** · 🧭 **[Check out other Apigee AI gateway demos](https://ai.apigee-demo.com/)**
 
 ---
 

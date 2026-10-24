@@ -60,6 +60,7 @@ const STATIC = {
   '/styles.css': ['styles.css', 'text/css; charset=utf-8'],
   '/assets/google-cloud.png': ['assets/google-cloud.png', 'image/png'],
   '/assets/apigee-logo.svg': ['assets/apigee-logo.svg', 'image/svg+xml'],
+  '/assets/favicon.svg': ['assets/favicon.svg', 'image/svg+xml'],
   '/assets/rules-engine.png': ['assets/rules-engine.png', 'image/png'],
   '/assets/classifier.png': ['assets/classifier.png', 'image/png'],
   '/assets/nvidia.png': ['assets/nvidia.png', 'image/png'],

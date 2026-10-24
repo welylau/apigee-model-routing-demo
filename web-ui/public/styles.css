@@ -145,6 +145,12 @@ body.busy { cursor: progress; }
 .status-dot.err { background: var(--danger); }
 .theme-toggle-btn { background: var(--bg-tertiary); border: 1px solid var(--border-subtle); color: var(--text-secondary); width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
 .theme-toggle-btn:hover { color: var(--text-main); border-color: var(--border-accent); }
+.header-links { display: flex; align-items: center; gap: 6px; }
+.header-link { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: var(--radius-full); background: var(--bg-tertiary); border: 1px solid var(--border-subtle); color: var(--text-secondary); font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap; transition: all 0.2s; }
+.header-link svg { flex-shrink: 0; }
+.header-link:hover, .header-link:focus-visible { color: var(--google-blue); border-color: var(--border-focus); background: var(--google-blue-subtle); outline: none; }
+.header-link.link-github { color: var(--text-main); }
+@media (max-width: 1500px) { .header-link span { display: none; } .header-link { width: 30px; padding: 0; justify-content: center; } }
 
 /* ---------- Layout ---------- */
 .main-content { flex: 1; max-width: 1560px; width: 100%; margin: 0 auto; padding: 24px; }
