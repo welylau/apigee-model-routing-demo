@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<TargetEndpoint name="anthropic-facade">
+    <Description>Backend call for the Anthropic facade. One endpoint for every Google-hosted backend (Vertex AI MaaS, Gemini, Claude on Vertex); the URL and body are chosen by JS-FacadeRequest. Failover goes to a Gemini model that is also on the caller's allow-list.</Description>
+    <PreFlow name="PreFlow">
+        <Request>
+            <Step>
+                <Name>AM-FacadeTarget</Name>
+            </Step>
+        </Request>
+        <Response>
+            <Step>
+                <Name>JS-FailoverCheck</Name>
+            </Step>
+            <Step>
+                <Name>AM-FailoverRequest</Name>
+                <Condition>llmr.failover_needed = "true"</Condition>
+            </Step>
+            <Step>
+                <Name>SC-Failover</Name>
+                <Condition>llmr.failover_needed = "true"</Condition>
+            </Step>
+            <Step>
+                <Name>JS-FacadeResponse</Name>
+            </Step>
+        </Response>
+    </PreFlow>
+    <HTTPTargetConnection>
+        <Properties>
+            <Property name="success.codes">1xx,2xx,3xx,4xx,5xx</Property>
+            <!-- Same budget as the GLM thinking path (16k tokens at ~90 tokens/s). -->
+            <Property name="io.timeout.millis">180000</Property>
+        </Properties>
+        <Authentication>
+            <GoogleAccessToken>
+                <Scopes>
+                    <Scope>https://www.googleapis.com/auth/cloud-platform</Scope>
+                </Scopes>
+            </GoogleAccessToken>
+        </Authentication>
+        <!-- Placeholder; overwritten by AM-FacadeTarget -->
+        <URL>https://aiplatform.googleapis.com/v1</URL>
+    </HTTPTargetConnection>
+</TargetEndpoint>

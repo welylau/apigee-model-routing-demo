@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ProxyEndpoint name="anthropic">
+    <Description>Anthropic Messages-compatible facade for coding agents such as Claude Code (ANTHROPIC_BASE_URL=https://host/llm-router/anthropic). The caller's credential is its Apigee developer app key; the API product's "allowed_models" attribute decides which models it may use; backends are called with the proxy's own credentials.</Description>
+    <DefaultFaultRule name="facade-fault">
+        <Step>
+            <Name>JS-FacadeFault</Name>
+        </Step>
+        <Step>
+            <Name>AM-FacadeHeaders</Name>
+        </Step>
+        <AlwaysEnforce>true</AlwaysEnforce>
+    </DefaultFaultRule>
+    <PreFlow name="PreFlow">
+        <Request>
+            <Step>
+                <Name>JS-FacadeAuth</Name>
+            </Step>
+            <Step>
+                <Name>VA-AgentKey</Name>
+            </Step>
+            <Step>
+                <Name>SA-AgentSpikeArrest</Name>
+            </Step>
+            <!-- TODO(security): add Model Armor SanitizeUserPrompt here to screen prompts before they reach a model. -->
+        </Request>
+        <Response/>
+    </PreFlow>
+    <Flows>
+        <Flow name="facade">
+            <Description>/v1/messages, /v1/messages/count_tokens, /v1/models, /api/hello (anything else gets an Anthropic-format 404).</Description>
+            <Request>
+                <Step>
+                    <Name>JS-FacadeRequest</Name>
+                </Step>
+            </Request>
+            <Response/>
+        </Flow>
+    </Flows>
+    <PostFlow name="PostFlow">
+        <Request/>
+        <Response>
+            <Step>
+                <Name>JS-FacadeLocalReply</Name>
+                <Condition>llmr.fx_local = "true"</Condition>
+            </Step>
+            <Step>
+                <Name>AM-FacadeHeaders</Name>
+            </Step>
+            <Step>
+                <Name>DC-RoutingAnalytics</Name>
+            </Step>
+        </Response>
+    </PostFlow>
+    <HTTPProxyConnection>
+        <BasePath>/llm-router/anthropic</BasePath>
+    </HTTPProxyConnection>
+    <RouteRule name="local">
+        <Condition>llmr.fx_local = "true"</Condition>
+    </RouteRule>
+    <RouteRule name="backend">
+        <TargetEndpoint>anthropic-facade</TargetEndpoint>
+    </RouteRule>
+</ProxyEndpoint>

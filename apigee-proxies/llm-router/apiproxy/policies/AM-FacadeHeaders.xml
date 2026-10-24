@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<AssignMessage continueOnError="false" enabled="true" name="AM-FacadeHeaders">
+    <DisplayName>AM-FacadeHeaders</DisplayName>
+    <Set>
+        <Headers>
+            <Header name="request-id">{messageid}</Header>
+            <Header name="x-routed-model">{llmr.model}</Header>
+            <Header name="x-requested-model">{llmr.requested_model}</Header>
+            <Header name="x-route-failover-from">{llmr.failover_from}</Header>
+            <Header name="x-route-failover-reason">{llmr.failover_reason}</Header>
+            <Header name="x-tokens-total">{usage.total_tokens}</Header>
+            <Header name="X-Content-Type-Options">nosniff</Header>
+        </Headers>
+    </Set>
+    <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+    <AssignTo createNew="false" transport="http" type="response"/>
+</AssignMessage>

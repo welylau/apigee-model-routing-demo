@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<VerifyAPIKey continueOnError="false" enabled="true" name="VA-AgentKey">
+    <DisplayName>VA-AgentKey</DisplayName>
+    <!-- Apigee developer app key, taken from x-api-key or Authorization: Bearer by JS-FacadeAuth. -->
+    <APIKey ref="llmr.client_key"/>
+</VerifyAPIKey>

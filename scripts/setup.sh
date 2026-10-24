@@ -33,6 +33,23 @@ $A developers create -n "$DEV_EMAIL" -f LLM -s Router -u llm-router-demo
 $A apps create -n llm-router-free-app    -e "$DEV_EMAIL" -p llm-router-free
 $A apps create -n llm-router-premium-app -e "$DEV_EMAIL" -p llm-router-premium
 
+echo "== Coding-agent products (Anthropic facade, /llm-router/anthropic)"
+# Created through the REST API: apigeecli --attrs splits on commas, which would break allowed_models.
+TOKEN="$(gcloud auth application-default print-access-token)"
+for p in llm-router-agents llm-router-agents-basic SeniorEngineerLLMProfile; do
+  curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+    --data @"$DIR/scripts/products/$p.json" \
+    "https://apigee.googleapis.com/v1/organizations/$ORG/apiproducts" | jq -c '{name, error: .error.message}'
+done
+
+echo "== Claude Code client app + key in Secret Manager"
+$A apps create -n claude-cli-vm-app -e "$DEV_EMAIL" -p llm-router-agents
+if ! gcloud secrets describe claude-cli-vm-key --project "$ORG" >/dev/null 2>&1; then
+  $A apps get -n claude-cli-vm-app 2>/dev/null | jq -j '.[0].credentials[0].consumerKey' |
+    gcloud secrets create claude-cli-vm-key --project "$ORG" --replication-policy=automatic \
+      --labels=app=llm-router-demo,component=claude-cli-vm --data-file=-
+fi
+
 cat <<EOF
 
 Setup complete. Deploy manually when ready:
@@ -43,4 +60,6 @@ Then fetch the API keys for scripts/demo.sh:
 
   apigeecli apps get -n llm-router-free-app    -o $ORG --default-token | jq -r '.[0].credentials[0].consumerKey'
   apigeecli apps get -n llm-router-premium-app -o $ORG --default-token | jq -r '.[0].credentials[0].consumerKey'
+
+The Claude Code client VM reads its key from Secret Manager (claude-cli-vm-key): ./scripts/vm-client.sh create
 EOF

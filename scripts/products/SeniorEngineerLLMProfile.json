@@ -1,0 +1,23 @@
+{
+  "name": "SeniorEngineerLLMProfile",
+  "displayName": "Senior Engineer LLM Profile",
+  "description": "Coding-agent profile for senior engineers (Claude Code via the Anthropic-compatible facade). Same models and rate as llm-router-agents. allowed_models is the model allow-list enforced by the gateway; spike_rate overrides the default 30pm spike arrest.",
+  "approvalType": "auto",
+  "environments": ["default-dev"],
+  "attributes": [
+    { "name": "access", "value": "public" },
+    { "name": "tier", "value": "agents" },
+    { "name": "allowed_models", "value": "glm-5.2,glm-5.2-thinking,gemini-3.5-flash,gemini-3.5-flash-lite,claude-sonnet-4-5@20250929" },
+    { "name": "spike_rate", "value": "120pm" }
+  ],
+  "operationGroup": {
+    "operationConfigType": "proxy",
+    "operationConfigs": [
+      { "apiSource": "llm-router", "operations": [{ "resource": "/v1/messages", "methods": ["POST"] }] },
+      { "apiSource": "llm-router", "operations": [{ "resource": "/v1/messages/count_tokens", "methods": ["POST"] }] },
+      { "apiSource": "llm-router", "operations": [{ "resource": "/v1/models", "methods": ["GET"] }] },
+      { "apiSource": "llm-router", "operations": [{ "resource": "/v1/models/*", "methods": ["GET"] }] },
+      { "apiSource": "llm-router", "operations": [{ "resource": "/api/hello", "methods": ["GET", "HEAD"] }] }
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<AssignMessage continueOnError="false" enabled="true" name="AM-FacadeTarget">
+    <DisplayName>AM-FacadeTarget</DisplayName>
+    <!-- Send the translated body to the chosen backend. The client's Apigee key never leaves the gateway;
+         the target authenticates with the proxy service account (GoogleAccessToken). -->
+    <Remove>
+        <Headers>
+            <Header name="x-api-key"/>
+            <Header name="Authorization"/>
+            <Header name="x-client-app"/>
+            <Header name="x-simulate-outage"/>
+            <Header name="anthropic-version"/>
+        </Headers>
+        <QueryParams/>
+    </Remove>
+    <Set>
+        <Headers>
+            <Header name="Content-Type">application/json</Header>
+        </Headers>
+        <Payload contentType="application/json" variablePrefix="@" variableSuffix="#">@llmr.fx_backend_body#</Payload>
+    </Set>
+    <AssignVariable>
+        <Name>target.copy.pathsuffix</Name>
+        <Value>false</Value>
+    </AssignVariable>
+    <AssignVariable>
+        <Name>target.copy.queryparams</Name>
+        <Value>false</Value>
+    </AssignVariable>
+    <AssignVariable>
+        <Name>target.url</Name>
+        <Ref>llmr.target_url</Ref>
+    </AssignVariable>
+    <IgnoreUnresolvedVariables>false</IgnoreUnresolvedVariables>
+    <AssignTo createNew="false" transport="http" type="request"/>
+</AssignMessage>

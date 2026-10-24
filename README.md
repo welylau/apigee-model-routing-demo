@@ -155,6 +155,59 @@ curl -s -X POST "$APIGEE_HOST/llm-router/v1/chat" -H "x-api-key: $KEY" \
          usage: .usageMetadata}'
 ```
 
+### Coding agents: Claude Code through the gateway (any allowed model)
+
+A second proxy endpoint, `/llm-router/anthropic`, speaks the **Anthropic Messages API**, so Claude Code (or any Anthropic SDK client) can use the gateway as its `ANTHROPIC_BASE_URL`. The developer's only credential is an **Apigee developer app key**. Apigee holds the real model credentials (credential brokerage), and the app's API product decides which models it may use.
+
+```
+Claude Code ──(app key)──> Apigee /llm-router/anthropic ──> GLM 5.2 (MaaS) · Gemini 3.5 · Claude Sonnet 4.5
+              VerifyAPIKey → allowed_models check → SpikeArrest (product spike_rate) → translate → failover
+```
+
+* **Per-app model allow-list.** The API product attribute `allowed_models` lists the ids an app may call. `GET /v1/models` returns only those, and anything else gets a 403 `model_not_allowed`. A product without the attribute gets nothing (default deny), so the existing free/premium keys can't use this endpoint.
+  * `llm-router-agents` (120 requests/min): `glm-5.2, glm-5.2-thinking, gemini-3.5-flash, gemini-3.5-flash-lite, claude-sonnet-4-5@20250929`.
+  * `llm-router-agents-basic` (30/min): `glm-5.2, gemini-3.5-flash-lite`.
+* **Models.** `glm-5.2` has reasoning off (fast tool loops); `glm-5.2-thinking` has it on. The model table is `facade_models` in [routing.properties](apigee-proxies/llm-router/apiproxy/resources/properties/routing.properties).
+* **Translation.** Requests are translated to OpenAI chat format (MaaS) or Gemini `generateContent`, including tools, `tool_use`/`tool_result` round trips and system prompts. Claude requests pass through to Vertex AI `rawPredict`, so prompt caching works. Responses come back as Anthropic messages; with `stream: true` the whole answer is sent as a single SSE event sequence once it is ready.
+* **Failover.** Same behavior as `/v1/chat`. If the primary fails, the gateway retries on the first allowed Gemini model in `facade_failover_models` (`x-simulate-outage: primary` works).
+* **Errors in Anthropic format.** 401 for a bad key, 403 for a model that isn't allowed, 429 with `retry-after` from SpikeArrest. Claude Code then shows a clear message and applies its own retry rules.
+
+**The developer workstation VM** ([scripts/vm-client.sh](scripts/vm-client.sh)): `developer-workstation-client-vm`, an e2-small Debian 12 VM.
+
+* **Access:** no external IP. You reach it by IAP SSH, and it reaches the internet through Cloud NAT. Shielded VM and OS Login are on.
+* **Credential:** its service account can only read the `claude-cli-vm-key` secret. [vm-startup.sh](scripts/vm-startup.sh) installs Claude Code, plus `apigee-key` (the `apiKeyHelper` that prints the app key) and `llm-models`.
+* **Admin-managed settings:** `/etc/claude-code/managed-settings.json` holds the gateway URL, the key helper, and a model picker plus `availableModels` generated from the gateway's `/v1/models`.
+* **Developer defaults:** `~/.claude/settings.json` sets the default model (`glm-5.2`). The background ("haiku") model is `gemini-3.5-flash-lite`.
+
+```bash
+./scripts/vm-client.sh create          # NAT + IAP SSH rule + service account + VM (~3 min to install)
+./scripts/vm-client.sh ssh
+llm-models                             # models this app may use
+llm-models use gemini-3.5-flash        # change your default model
+claude                                 # inside: /model to switch, or: claude --model glm-5.2-thinking
+```
+
+Equivalent to a gateway-style `settings.json` on any machine:
+
+```json
+{
+  "apiKeyHelper": "/usr/local/bin/apigee-key",
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://<apigee-host>/llm-router/anthropic",
+    "ANTHROPIC_MODEL": "glm-5.2",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "gemini-3.5-flash-lite",
+    "ANTHROPIC_CUSTOM_HEADERS": "x-client-app: claude-code-workstation",
+    "CLAUDE_CODE_GATEWAY_HINT_HEADERS": "1",
+    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
+    "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1",
+    "ENABLE_PROMPT_CACHING_1H": "1"
+  }
+}
+```
+
+> [!IMPORTANT]
+> Anthropic doesn't support routing Claude Code to non-Claude models through any gateway. GLM and Gemini work here because Apigee translates the API (verified with tool use on every model), but treat it as a demo of gateway governance, not a supported Claude Code configuration.
+
 ---
 
 ## 🔁 Model Failover
@@ -239,11 +292,11 @@ curl -s -X POST "https://<your-apigee-host>/llm-router/v1/route" \
 ```
 apigee-model-routing-demo/
 ├── apigee-proxies/llm-router/apiproxy/    # The Apigee X proxy (AI gateway)
-│   ├── proxies/                           # default (/v1/route, /v1/chat) and stream (/v1/stream)
-│   ├── targets/                           # vertex, azure, gemma (+ -stream variants)
+│   ├── proxies/                           # default (/v1/route, /v1/chat), stream (/v1/stream), anthropic (coding agents)
+│   ├── targets/                           # vertex, azure, gemma, maas (+ -stream variants), anthropic-facade
 │   ├── policies/                          # VerifyAPIKey, SpikeArrest, ServiceCallouts, failover, KVM, DataCapture...
 │   └── resources/
-│       ├── jsc/                           # prepare-request, decide-route, failover, provider translators
+│       ├── jsc/                           # prepare-request, decide-route, failover, provider translators, facade-*
 │       └── properties/routing.properties  # tier → model, thinking, failover and thresholds
 │
 ├── prompt-classifier/                     # NVIDIA NemoCurator classifier service (FastAPI, Cloud Run)
@@ -257,6 +310,9 @@ apigee-model-routing-demo/
 ├── scripts/
 │   ├── setup.sh                           # data collectors, target server, bundle, products, apps
 │   ├── demo.sh                            # CLI scenarios (route | chat)
+│   ├── products/                          # coding-agent API products (allowed_models, spike_rate)
+│   ├── vm-client.sh                       # developer workstation VM: create | ssh | status | update | delete
+│   ├── vm-startup.sh                      # VM startup: Claude Code, apigee-key helper, llm-models, settings
 │   └── custom-report.json                 # Apigee Analytics custom report definition
 │
 ├── web-ui/                                # Demo web app (Node.js 18+, zero dependencies)
@@ -466,6 +522,15 @@ Tick **🔌 Simulate model outage** and send any prompt. The chosen model return
 ### Scenario 5: Static routing
 Switch to **Static Routing** and pin GPT-4.1 Nano (Azure) or Claude Sonnet 4.5. Same API, same key; Apigee translates the request and response.
 
+### Scenario 6: Coding agent on governed models (Claude Code)
+1. `./scripts/vm-client.sh ssh`, then `llm-models`. The list comes from the app's API product, not from the client.
+2. `cd ~/demo && claude` and ask *"Read src/app.js and add a restart() function"*. GLM 5.2 drives Claude Code's tools through Apigee.
+3. Type `/model` and pick Gemini 3.5 Flash or Claude Sonnet 4.5. Same key; the gateway changes backend.
+4. Show governance from your laptop:
+   * `curl` the endpoint with the same key and `"model":"gpt-4.1-nano"`: the result is 403 `model_not_allowed`.
+   * Remove a model from the product's `allowed_models` attribute, then run `sudo llm-models sync` on the VM. The model disappears from `/model`.
+5. Analytics: the `dc_route_tier` dimension shows Claude Code's request class (main / subagent / auxiliary), and `dc_routed_model` shows the model that served each call.
+
 ---
 
 ## 🔐 Security Notes
@@ -477,6 +542,9 @@ Switch to **Static Routing** and pin GPT-4.1 Nano (Azure) or Claude Sonnet 4.5. 
 * Secrets: the Azure key lives in an Apigee KVM; Cloud Run services are private and accept only the proxy service account's ID token.
 * Hosted web UI: runs on Cloud Run with IAP and `--no-allow-unauthenticated`. The Apigee app key sits in Secret Manager and only a dedicated runtime service account can read it. The container runs as a non-root user. On Cloud Run the server accepts only its own `*.run.app` host; add custom domains with `PUBLIC_HOSTS`.
 * Outage simulation never sends credentials to a different host (same host, bogus path). Disable it in production with `allow_outage_simulation=false`.
+* Coding-agent endpoint: the client only ever holds an Apigee app key. `x-api-key`, `Authorization`, `x-client-app` and `x-simulate-outage` are removed before the backend call, and the model allow-list is enforced at the gateway (the VM's managed settings are a convenience, not the control).
+  * The workstation VM has no external IP and uses IAP-only SSH, Shielded VM and OS Login. Its service account can read only `claude-cli-vm-key`.
+  * Any user on the VM can run `apigee-key`, so give each developer their own app (and secret) when you need per-person attribution or revocation.
 * **Production to-dos:** add Model Armor (`SanitizeUserPrompt`) before routing, and authentication for the external decision engine.
 
 ---
@@ -489,6 +557,9 @@ $A apis undeploy -n llm-router -e "$ENV"                 # undeploys the highest
 $A developers delete -n llm-router-demo@example.com      # also deletes its apps
 $A products delete -n llm-router-free
 $A products delete -n llm-router-premium
+$A products delete -n llm-router-agents
+$A products delete -n llm-router-agents-basic
+$A products delete -n SeniorEngineerLLMProfile
 $A apis delete -n llm-router
 $A targetservers delete -e "$ENV" -n jev-engine
 $A kvms delete -e "$ENV" -n azure-secrets
@@ -496,6 +567,10 @@ for d in dc_routed_model dc_route_tier dc_route_decided_by dc_route_decision_ms 
 
 gcloud run services delete prompt-classifier --region "$REGION" --quiet
 gcloud run services delete gemma2-api --region "$REGION" --quiet
+
+# Claude Code workstation: VM, NAT/router, IAP SSH rule, service account; then the app key secret
+./scripts/vm-client.sh delete
+gcloud secrets delete claude-cli-vm-key --quiet
 
 # hosted web UI (Step 7b); deleting the service also removes its IAP bindings
 gcloud run services delete llm-router-ui --region "$REGION" --quiet

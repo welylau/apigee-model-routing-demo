@@ -1,0 +1,23 @@
+{
+  "name": "llm-router-agents-basic",
+  "displayName": "LLM Router - Coding Agents (Basic)",
+  "description": "Restricted coding-agent product: only the low-cost models. Used to show the allow-list differing per app.",
+  "approvalType": "auto",
+  "environments": ["default-dev"],
+  "attributes": [
+    { "name": "access", "value": "public" },
+    { "name": "tier", "value": "agents-basic" },
+    { "name": "allowed_models", "value": "glm-5.2,gemini-3.5-flash-lite" },
+    { "name": "spike_rate", "value": "30pm" }
+  ],
+  "operationGroup": {
+    "operationConfigType": "proxy",
+    "operationConfigs": [
+      { "apiSource": "llm-router", "operations": [{ "resource": "/v1/messages", "methods": ["POST"] }] },
+      { "apiSource": "llm-router", "operations": [{ "resource": "/v1/messages/count_tokens", "methods": ["POST"] }] },
+      { "apiSource": "llm-router", "operations": [{ "resource": "/v1/models", "methods": ["GET"] }] },
+      { "apiSource": "llm-router", "operations": [{ "resource": "/v1/models/*", "methods": ["GET"] }] },
+      { "apiSource": "llm-router", "operations": [{ "resource": "/api/hello", "methods": ["GET", "HEAD"] }] }
+    ]
+  }
+}

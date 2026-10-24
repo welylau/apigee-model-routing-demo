@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Javascript continueOnError="false" enabled="true" timeLimit="500" name="JS-FacadeLocalReply">
+    <DisplayName>JS-FacadeLocalReply</DisplayName>
+    <IncludeURL>jsc://facade-lib.js</IncludeURL>
+    <ResourceURL>jsc://facade-local-reply.js</ResourceURL>
+</Javascript>
