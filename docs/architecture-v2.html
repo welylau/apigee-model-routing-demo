@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<!--
+  House-style architecture OVERVIEW for Apigee: Dynamic Model (LLM) Routing (v2).
+  Aligned with the apigee-demo-ui house overview diagram template (1600x900 @2x -> 3200x1800 PNG).
+  Kept alongside docs/architecture.dot + docs/architecture.png without overwriting the v1 diagram.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #1a73e8; --blue-d: #1967d2; --blue-l: #e8f0fe;
+    --orange: #f04d23; --orange-l: #fef3f0;
+    --green: #188038; --green-l: #e6f4ea;
+    --amber: #b06000; --amber-l: #fef7e0; --amber-b: #f9ab00;
+    --red: #c5221f; --red-l: #fce8e6;
+    --purple: #7b1fa2; --purple-l: #f3e8fd;
+    --azure: #0078d4; --azure-l: #e6f2fb;
+    --aws: #b45f06; --aws-l: #fff4e0;
+    --gray9: #202124; --gray7: #5f6368; --gray5: #80868b; --gray3: #dadce0; --gray1: #f1f3f4;
+    --sans: "Plus Jakarta Sans", -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --mono: "JetBrains Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 1600px; height: 900px; background: #fff; font-family: var(--sans); color: var(--gray9); position: relative; overflow: hidden; }
+
+  .head { position: absolute; left: 40px; top: 28px; width: 455px; }
+  .head h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.18; white-space: nowrap; }
+  .head h1 .x { color: var(--orange); }
+  .head p { font-size: 16px; color: var(--gray7); margin-top: 8px; font-weight: 500; line-height: 1.42; }
+
+  .box { position: absolute; border: 3px solid var(--gray9); border-radius: 18px; background: #fff; padding: 18px 22px; }
+  .name { font-size: 24px; font-weight: 800; display: flex; align-items: center; gap: 10px; line-height: 1.15; }
+  .name img { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
+  .emoji { font-size: 25px; line-height: 1; }
+  .desc { font-size: 15.5px; color: var(--gray7); margin-top: 7px; line-height: 1.38; font-weight: 500; }
+
+  /* Left: client app */
+  #client { left: 40px; top: 362px; width: 236px; height: 196px; }
+  .hdr-hint { display: inline-block; margin-top: 10px; font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--gray7); background: var(--gray1); border: 1px solid var(--gray3); border-radius: 6px; padding: 3px 8px; }
+
+  /* Top external service: AI Classifiers (with nested Other Rules & Engines sub-box) */
+  #svc { left: 520px; top: 64px; width: 660px; height: 172px; border-color: var(--orange); background: var(--orange-l); padding: 15px 20px; }
+  #svc .svc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  #svc .name { color: var(--orange); font-size: 22px; }
+  #svc .svc-sub { font-size: 13.5px; color: var(--gray7); font-weight: 600; white-space: nowrap; }
+  .svc-grid { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 12px; }
+  .svc-direct { display: flex; flex-direction: column; gap: 8px; }
+  .svc-direct-desc { font-size: 13.5px; color: var(--gray7); font-weight: 500; }
+  .svc-group.other { flex: 1; background: var(--amber-l); border: 2px dashed var(--amber-b); border-radius: 12px; padding: 9px 12px; display: flex; flex-direction: column; justify-content: space-between; }
+  .sg-lbl { display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--amber); margin-bottom: 7px; }
+  .plug-pill { font-size: 9.5px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--amber); background: #fff; border: 1px solid rgba(176,96,0,0.35); border-radius: 999px; padding: 1px 7px; }
+  .svc-chips { display: flex; gap: 7px; flex-wrap: nowrap; }
+  .schip { display: inline-flex; align-items: center; gap: 6px; background: #fff; border: 1.5px solid rgba(240,77,35,0.28); border-radius: 8px; padding: 6px 10px; font-size: 13px; font-weight: 700; color: var(--gray9); white-space: nowrap; }
+  .svc-group.other .schip { border-color: rgba(176,96,0,0.32); padding: 5px 9px; font-size: 12.5px; }
+  .schip img, .schip svg { width: 14px; height: 14px; object-fit: contain; flex-shrink: 0; }
+
+  /* Center: Apigee gateway + 3 numbered steps */
+  #gateway { left: 360px; top: 286px; width: 820px; height: 350px; background: #fafbfc; }
+  #gateway .gw-head { display: flex; align-items: center; }
+  #gateway .name { font-size: 26px; }
+
+  .card { position: absolute; top: 92px; height: 228px; border-radius: 14px; border: 3px solid; background: #fff; padding: 15px 16px; display: flex; flex-direction: column; }
+  .card-top { display: flex; align-items: center; gap: 10px; }
+  .card .num { width: 34px; height: 34px; border-radius: 50%; color: #fff; font-weight: 800; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card h3 { font-size: 18.5px; font-weight: 800; line-height: 1.2; white-space: nowrap; }
+  .card p { font-size: 14.5px; color: var(--gray7); margin-top: 8px; line-height: 1.38; font-weight: 500; }
+  #c1 { left: 24px; width: 220px; border-color: var(--blue); }   #c1 .num { background: var(--blue); }
+  #c2 { left: 266px; width: 268px; border-color: var(--orange); } #c2 .num { background: var(--orange); }
+  #c3 { left: 556px; width: 240px; border-color: var(--orange); } #c3 .num { background: var(--orange); }
+  #c3 .fo-tag { margin-top: auto; align-self: flex-start; font-size: 11.5px; font-weight: 700; color: var(--green); background: var(--green-l); border: 1.5px solid rgba(24,128,56,0.28); border-radius: 999px; padding: 4px 9px; white-space: nowrap; }
+
+  /* In-proxy rules inside Step 2 (#c2) */
+  .inproxy-list { display: flex; flex-direction: column; gap: 6px; margin-top: 9px; }
+  .ip-item { display: flex; align-items: center; justify-content: space-between; gap: 6px; background: var(--orange-l); border: 1.5px solid rgba(240,77,35,0.28); border-radius: 8px; padding: 5px 9px; font-size: 13px; font-weight: 700; color: var(--gray9); }
+  .ip-item small { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--orange); }
+  .c2-sub { font-size: 12.5px !important; margin-top: 8px !important; color: var(--gray7); line-height: 1.32 !important; }
+
+  /* Right: Multi-cloud & on-prem models */
+  #model { left: 1242px; top: 286px; width: 322px; height: 350px; border-color: var(--blue); padding: 18px 18px; display: flex; flex-direction: column; }
+  #model .name { color: var(--blue); font-size: 20.5px; white-space: nowrap; }
+  .cloud-rows { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+  .crow { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 11px; background: var(--gray1); border: 1.5px solid var(--gray3); }
+  .crow.gcp { background: #f8faff; border-color: #c6dafc; }
+  .crow.az  { background: var(--azure-l); border-color: #b3d7f2; }
+  .crow.aws { background: var(--aws-l); border-color: #f5d399; }
+  .crow-ico { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .crow-ico img, .crow-ico svg { width: 20px; height: 20px; object-fit: contain; }
+  .crow-txt { line-height: 1.25; min-width: 0; }
+  .crow-txt b { display: block; font-size: 14px; font-weight: 800; color: var(--gray9); }
+  .crow-txt span { display: block; font-size: 12px; font-weight: 600; color: var(--gray7); white-space: nowrap; }
+
+  /* Bottom center: Cloud Logging & Analytics */
+  #log { left: 575px; top: 714px; width: 390px; height: 140px; border-color: var(--purple); background: var(--purple-l); padding: 16px 20px; }
+  #log .name { color: var(--purple); font-size: 21px; white-space: nowrap; }
+
+  /* Bottom side panels */
+  .panel { position: absolute; top: 696px; height: 174px; border: 2px dashed var(--gray3); background: var(--gray1); border-radius: 18px; padding: 16px 20px; }
+  .panel .lbl { font-size: 13.5px; font-weight: 800; letter-spacing: 1px; color: var(--gray7); }
+  #example { left: 40px; width: 510px; }
+  .ex-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 14.5px; font-weight: 600; }
+  .ex-in { font-family: var(--mono); font-size: 13px; color: var(--gray9); background: #fff; border: 1px solid var(--gray3); border-radius: 6px; padding: 2px 7px; white-space: nowrap; }
+  .ex-arr { color: var(--gray5); font-weight: 700; }
+  .tok { color: var(--blue-d); background: var(--blue-l); border-radius: 6px; padding: 2px 8px; font-family: var(--mono); font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+  .tok.xc { color: var(--aws); background: var(--aws-l); }
+
+  #outcomes { left: 990px; width: 570px; }
+  .out { display: flex; align-items: center; gap: 12px; margin-top: 11px; font-size: 15.5px; font-weight: 600; }
+  .code { font-family: var(--mono); font-weight: 700; font-size: 14px; border-radius: 8px; padding: 2px 10px; min-width: 78px; text-align: center; }
+  .ok { color: var(--green); background: var(--green-l); }
+  .fo { color: var(--amber); background: var(--amber-l); }
+  .no { color: var(--red); background: var(--red-l); }
+
+  .lab { position: absolute; z-index: 6; font-size: 14.5px; font-weight: 700; background: #fff; padding: 2px 7px; border-radius: 6px; white-space: nowrap; }
+  svg.wires { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+</style>
+</head>
+<body>
+
+<div class="head">
+  <h1>Apigee <span class="x">X</span> + Dynamic Model Routing</h1>
+  <p>One AI gateway for static &amp; dynamic LLM routing across Google Cloud, Azure, AWS and on-prem — with automatic failover.</p>
+</div>
+
+<svg class="wires" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <marker id="mB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1a73e8"/></marker>
+    <marker id="mG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#188038"/></marker>
+    <marker id="mO" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#f04d23"/></marker>
+    <marker id="mP" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7b1fa2"/></marker>
+    <marker id="mS" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#80868b"/></marker>
+  </defs>
+  <!-- client <-> gateway -->
+  <line x1="280" y1="432" x2="352" y2="432" stroke="#1a73e8" stroke-width="4" marker-end="url(#mB)"/>
+  <line x1="356" y1="496" x2="284" y2="496" stroke="#188038" stroke-width="4" stroke-dasharray="9 6" marker-end="url(#mG)"/>
+  <!-- gateway <-> models -->
+  <line x1="1184" y1="432" x2="1234" y2="432" stroke="#1a73e8" stroke-width="4" marker-end="url(#mB)"/>
+  <line x1="1238" y1="496" x2="1188" y2="496" stroke="#188038" stroke-width="4" stroke-dasharray="9 6" marker-end="url(#mG)"/>
+  <!-- AI Classifiers (with nested Other Rules & Engines) <-> step 2 -->
+  <line x1="770" y1="244" x2="770" y2="372" stroke="#f04d23" stroke-width="4" marker-start="url(#mO)" marker-end="url(#mO)"/>
+  <!-- step 1 -> step 2 -> step 3 -->
+  <line x1="606" y1="492" x2="622" y2="492" stroke="#80868b" stroke-width="3" marker-end="url(#mS)"/>
+  <line x1="896" y1="492" x2="912" y2="492" stroke="#80868b" stroke-width="3" marker-end="url(#mS)"/>
+  <!-- gateway -> logging -->
+  <line x1="770" y1="640" x2="770" y2="706" stroke="#7b1fa2" stroke-width="4" stroke-dasharray="9 6" marker-end="url(#mP)"/>
+</svg>
+
+<div class="lab" style="left:286px; top:400px; color:#1a73e8;">prompt</div>
+<div class="lab" style="left:286px; top:508px; color:#188038;">answer</div>
+<div class="lab" style="left:1188px; top:400px; color:#1a73e8;">routed</div>
+<div class="lab" style="left:1188px; top:508px; color:#188038;">answer</div>
+<div class="lab" style="left:782px; top:252px; color:#f04d23;">scores / verdict</div>
+<div class="lab" style="left:782px; top:656px; color:#7b1fa2;">telemetry</div>
+
+<div class="box" id="client">
+  <div class="name"><span class="emoji">💻</span>Your app</div>
+  <div class="desc">Calls one unified gateway endpoint with its API key. No provider SDKs.</div>
+  <span class="hdr-hint">POST /llm-router/v1/…</span>
+</div>
+
+<div class="box" id="svc">
+  <div class="svc-head">
+    <div class="name">🧠 AI Classifiers</div>
+    <span class="svc-sub">Called via ServiceCallout</span>
+  </div>
+  <div class="svc-grid">
+    <div class="svc-direct">
+      <div class="svc-direct-desc">Intent &amp; complexity scoring:</div>
+      <div class="svc-chips">
+        <span class="schip"><svg viewBox="0 0 24 24"><path fill="#1a73e8" d="M12 22C12 16.5 7.5 12 2 12C7.5 12 12 7.5 12 2C12 7.5 16.5 12 22 12C16.5 12 12 16.5 12 22Z"/></svg>Gemini Flash-Lite</span>
+        <span class="schip"><svg viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="#76B900"/><path fill="#fff" d="M5 12c2.5-4 6-5 9.5-3.5-2.5.5-4.5 2-5.5 3.5 1.5 1.5 3.5 2.5 6 2.5-3 2-7 1.5-10-2.5z"/></svg>NemoCurator</span>
+      </div>
+    </div>
+    <div class="svc-group other">
+      <div class="sg-lbl"><span>🔌 Other Rules &amp; Engines</span><span class="plug-pill">Pluggable</span></div>
+      <div class="svc-chips">
+        <span class="schip">⚡ TypeSafe AI JEV</span>
+        <span class="schip">⚖️ Custom Policy API</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="box" id="gateway">
+  <div class="gw-head">
+    <div class="name"><img src="../web-ui/public/assets/apigee-logo.svg" alt="">Apigee X AI Gateway</div>
+  </div>
+  <div class="card" id="c1">
+    <div class="card-top"><div class="num">1</div><h3>Verify the app</h3></div>
+    <p>Checks API key, product tier (free / premium), allowed models &amp; spike arrest.</p>
+  </div>
+  <div class="card" id="c2">
+    <div class="card-top"><div class="num">2</div><h3>Routing decision</h3></div>
+    <div class="inproxy-list">
+      <div class="ip-item"><span>📌 Static routing rule</span><small>in-proxy</small></div>
+      <div class="ip-item"><span>📏 Preset rules engine</span><small>~0 ms</small></div>
+    </div>
+    <p class="c2-sub">Or delegates dynamically to AI Classifiers / JEV above (rules = fallback).</p>
+  </div>
+  <div class="card" id="c3">
+    <div class="card-top"><div class="num">3</div><h3>Route &amp; translate</h3></div>
+    <p>Maps tier → model and translates payloads &amp; SSE across clouds.</p>
+    <div class="fo-tag">🔁 Auto-failover to backup Gemini</div>
+  </div>
+</div>
+
+<div class="box" id="model">
+  <div class="name">🌐 Any Model · Any Cloud</div>
+  <div class="cloud-rows">
+    <div class="crow gcp">
+      <span class="crow-ico"><img src="../web-ui/public/assets/google-cloud.png" alt=""></span>
+      <div class="crow-txt"><b>Google Cloud</b><span>Gemini · Claude · Grok · GLM · Gemma</span></div>
+    </div>
+    <div class="crow az">
+      <span class="crow-ico"><svg viewBox="0 0 24 24"><path fill="#0078D4" d="M22.379 23.343a1.62 1.62 0 0 0 1.536-2.14v.002L17.35 1.76A1.62 1.62 0 0 0 15.816.657H8.184A1.62 1.62 0 0 0 6.65 1.76L.086 21.204a1.62 1.62 0 0 0 1.536 2.139h4.741a1.62 1.62 0 0 0 1.535-1.103l.977-2.892 4.947 3.675c.28.208.618.32.966.32m-3.084-12.531 3.624 10.739a.54.54 0 0 1-.51.713v-.001h-.03a.54.54 0 0 1-.322-.106l-9.287-6.9h4.853m6.313 7.006c.116-.326.13-.694.007-1.058L9.79 1.76a1.722 1.722 0 0 0-.21-.415 1.62 1.62 0 0 1 1.204-.688h5.032c.696 0 1.314.444 1.536 1.103l6.565 19.445c.11.326.115.67.026.988z"/></svg></span>
+      <div class="crow-txt"><b>Microsoft Azure</b><span>OpenAI GPT-4.1 Nano · Foundry</span></div>
+    </div>
+    <div class="crow aws">
+      <span class="crow-ico"><img src="../web-ui/public/assets/nova.png" alt=""></span>
+      <div class="crow-txt"><b>AWS Bedrock</b><span>Amazon Nova Lite · Singapore</span></div>
+    </div>
+    <div class="crow">
+      <span class="crow-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#3c4043" stroke-width="2"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><circle cx="7" cy="7" r="1" fill="#3c4043"/><circle cx="7" cy="17" r="1" fill="#3c4043"/></svg></span>
+      <div class="crow-txt"><b>On-prem / Custom</b><span>Ollama · vLLM · NIM (OpenAI API)</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="box" id="log">
+  <div class="name">📊 Cloud Logging &amp; Analytics</div>
+  <div class="desc">Captures routed model, tier, decision latency, token usage &amp; cost savings per call.</div>
+</div>
+
+<div class="panel" id="example">
+  <div class="lbl">EXAMPLE ROUTES</div>
+  <div class="ex-row"><span class="ex-in">"TL;DR this email"</span><span class="ex-arr">→</span><span class="tok">Simple · Flash-Lite (−88%)</span></div>
+  <div class="ex-row"><span class="ex-in">"Fix race condition"</span><span class="ex-arr">→</span><span class="tok">Coding · Gemini 2.5 Pro</span></div>
+  <div class="ex-row"><span class="ex-in">Static rule (in-proxy)</span><span class="ex-arr">→</span><span class="tok xc">Azure GPT / AWS Nova / Ollama</span></div>
+</div>
+
+<div class="panel" id="outcomes">
+  <div class="lbl">OUTCOMES</div>
+  <div class="out"><span class="code ok">200</span>Routed to best-fit model &amp; streamed back</div>
+  <div class="out"><span class="code fo">200 ↻</span>Primary error → seamless backup Gemini retry</div>
+  <div class="out"><span class="code no">401/429</span>Invalid API key or spike-arrest limit hit</div>
+</div>
+
+</body>
+</html>

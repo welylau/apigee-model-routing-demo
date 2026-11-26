@@ -63,7 +63,7 @@ $G secrets add-iam-policy-binding "$SECRET" --member="serviceAccount:$RUNTIME_SA
 echo "== Build context"
 BUILD="$DIR/.build"
 rm -rf "$BUILD"; mkdir -p "$BUILD"
-cp "$DIR/Dockerfile" "$DIR/package.json" "$DIR/server.js" "$BUILD/"
+cp "$DIR/Dockerfile" "$DIR/package.json" "$DIR/server.js" "$DIR/endpoint-policy.js" "$BUILD/"
 cp -R "$DIR/public" "$BUILD/public"
 cp "$DIR/../apigee-proxies/llm-router/apiproxy/resources/properties/routing.properties" "$BUILD/"
 trap 'rm -rf "$BUILD"' EXIT

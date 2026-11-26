@@ -207,12 +207,45 @@ for (var mi = 0; mi < maasList.length; mi++) {
 var isMaas = maasModelId !== '';
 if (isMaas) { isClaude = false; isAzure = false; isGemma = false; isGrok = false; } // allow-list wins over name matching
 
+// Amazon Bedrock (Converse API, Bedrock API key), allow-listed in routing.properties as
+// "bedrock_models=<short id>|<Bedrock model or inference profile id>,...".
+var bedrockModelId = '';
+var bedrockList = String(context.getVariable('propertyset.routing.bedrock_models') || '').split(',');
+for (var bi = 0; bi < bedrockList.length; bi++) {
+  var bpair = bedrockList[bi].split('|');
+  if (bpair.length === 2 && bpair[0].trim() === model) bedrockModelId = bpair[1].trim();
+}
+var isBedrock = bedrockModelId !== '' && !isMaas;
+if (isBedrock) { isClaude = false; isAzure = false; isGemma = false; isGrok = false; }
+
+// Custom / on-prem OpenAI-compatible endpoints: "custom" = the caller's personal endpoint (x-custom-endpoint-* headers),
+// "shared-1".."shared-3" = endpoints an admin registered in the KVM "custom-endpoints". custom-request.js resolves
+// and validates the URL in the target flow.
+var isCustom = context.getVariable('propertyset.routing.custom_endpoints_enabled') !== 'false' &&
+  (model === 'custom' || /^shared-[1-3]$/.test(model));
+if (isCustom) { isClaude = false; isAzure = false; isGemma = false; isGrok = false; isMaas = false; isBedrock = false; }
+
 context.setVariable('llmr.is_claude', isClaude ? 'true' : 'false');
 context.setVariable('llmr.is_azure', isAzure ? 'true' : 'false');
 context.setVariable('llmr.is_gemma', isGemma ? 'true' : 'false');
 context.setVariable('llmr.is_maas', isMaas ? 'true' : 'false');
+context.setVariable('llmr.is_bedrock', isBedrock ? 'true' : 'false');
+context.setVariable('llmr.is_custom', isCustom ? 'true' : 'false');
 
-if (isMaas) {
+if (isCustom) {
+  context.setVariable('llmr.publisher', 'custom');
+  context.setVariable('llmr.custom_slot', model);
+  context.setVariable('llmr.custom_slot_key', model + '-key');
+  context.setVariable('llmr.target_url', '');
+} else if (isBedrock) {
+  var bedrockRegion = context.getVariable('propertyset.routing.bedrock_region') || 'ap-southeast-1';
+  if (!/^[a-z]{2}(-[a-z]+)+-\d$/.test(bedrockRegion)) bedrockRegion = 'ap-southeast-1';
+  context.setVariable('llmr.publisher', 'amazon');
+  context.setVariable('llmr.bedrock_model_id', bedrockModelId);
+  context.setVariable('llmr.target_location', bedrockRegion);
+  context.setVariable('llmr.target_host', 'bedrock-runtime.' + bedrockRegion + '.amazonaws.com');
+  context.setVariable('llmr.target_url', 'https://' + context.getVariable('llmr.target_host') + '/model/' + encodeURIComponent(bedrockModelId) + '/converse');
+} else if (isMaas) {
   // One OpenAI-compatible endpoint for every MaaS model; the model is chosen by the "model" field (maas-request.js).
   context.setVariable('llmr.publisher', maasModelId.split('/')[0]);
   context.setVariable('llmr.maas_model_id', maasModelId);
@@ -262,9 +295,13 @@ var simulate = context.getVariable('propertyset.routing.allow_outage_simulation'
   String(context.getVariable('request.header.x-simulate-outage') || '').toLowerCase().trim() === 'primary';
 if (simulate) {
   var turl = context.getVariable('llmr.target_url');
-  turl = (isAzure || isGemma || isMaas)
-    ? turl.replace(/\/chat\/completions$/, '/simulated-outage')
-    : turl.replace('/models/' + model, '/models/' + model + '-simulated-outage');
+  // Bedrock: unknown paths return HTTP 200 and bad model ids 400 (never failed over), so the URL stays and
+  // AM-BedrockSimulateOutage sends a dummy key instead (Bedrock returns 403; the real key is not sent).
+  turl = isBedrock
+    ? turl
+    : (isAzure || isGemma || isMaas)
+      ? turl.replace(/\/chat\/completions$/, '/simulated-outage')
+      : turl.replace('/models/' + model, '/models/' + model + '-simulated-outage');
   context.setVariable('llmr.target_url', turl);
 }
 context.setVariable('llmr.simulated_outage', simulate ? 'true' : 'false');

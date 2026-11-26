@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<AssignMessage continueOnError="false" enabled="true" name="AM-SetCustomKey">
+    <DisplayName>AM-SetCustomKey</DisplayName>
+    <!-- Only when the endpoint has an API key (llmr.custom_has_key = true). -->
+    <Set>
+        <Headers>
+            <Header name="Authorization">Bearer {private.custom_key}</Header>
+        </Headers>
+    </Set>
+    <IgnoreUnresolvedVariables>false</IgnoreUnresolvedVariables>
+    <AssignTo createNew="false" transport="http" type="request"/>
+</AssignMessage>

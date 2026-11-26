@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<TargetEndpoint name="bedrock-stream">
+    <Description>Amazon Bedrock Target (Converse API, Bedrock API key)</Description>
+    <PreFlow name="PreFlow">
+        <Request>
+            <Step>
+                <Name>KVM-GetBedrockKey</Name>
+            </Step>
+            <Step>
+                <Name>AM-SetBedrockAuth</Name>
+            </Step>
+            <Step>
+                <Name>AM-BedrockSimulateOutage</Name>
+                <Condition>llmr.simulated_outage = "true"</Condition>
+            </Step>
+            <Step>
+                <Name>JS-BedrockRequest</Name>
+            </Step>
+        </Request>
+        <Response>
+            <!-- Model failover: errors reach this flow (success.codes), retry once on a backup Gemini model. -->
+            <Step>
+                <Name>JS-FailoverCheck</Name>
+            </Step>
+            <Step>
+                <Name>AM-FailoverRequest</Name>
+                <Condition>llmr.failover_needed = "true"</Condition>
+            </Step>
+            <Step>
+                <Name>SC-Failover</Name>
+                <Condition>llmr.failover_needed = "true"</Condition>
+            </Step>
+            <Step>
+                <Name>JS-FailoverApply</Name>
+                <Condition>llmr.failover_needed = "true"</Condition>
+            </Step>
+            <Step>
+                <Name>AM-FaultResponse</Name>
+                <Condition>llmr.primary_failed = "true" and llmr.failover != "true"</Condition>
+            </Step>
+            <Step>
+                <Name>JS-BedrockResponse</Name>
+                <Condition>llmr.primary_failed != "true"</Condition>
+            </Step>
+        </Response>
+    </PreFlow>
+    <HTTPTargetConnection>
+        <Properties>
+            <Property name="success.codes">1xx,2xx,3xx,4xx,5xx</Property>
+        </Properties>
+        <URL>https://bedrock-runtime.ap-southeast-1.amazonaws.com/model/apac.amazon.nova-lite-v1%3A0/converse</URL>
+    </HTTPTargetConnection>
+</TargetEndpoint>

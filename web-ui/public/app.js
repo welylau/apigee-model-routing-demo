@@ -1,10 +1,22 @@
 const LOGOS = {
   gemini: '<svg viewBox="0 0 24 24" width="24" height="24"><path fill="#1a73e8" d="M12 22C12 16.5 7.5 12 2 12C7.5 12 12 7.5 12 2C12 7.5 16.5 12 22 12C16.5 12 12 16.5 12 22Z"/></svg>',
-  azure: '<svg viewBox="0 0 24 24" width="24" height="24"><path fill="#0078D4" d="M21 9l-4.5-2.5-1-6h-7l-1 6L3 9l2.5 5.5L3 20l7 2.5 7-2.5-2.5-5.5L21 9zM12 19.5L6.5 17.5l2-4.5-2.5-5 4.5 1.5 1.5 5 1.5-5 4.5-1.5-2.5 5 2 4.5L12 19.5z"/></svg>',
+  // OpenAI mark (GPT models), path from Simple Icons (simple-icons/icons/openai.svg); white on black like the xAI / Z.ai chips.
+  openai: '<svg viewBox="0 0 24 24" width="24" height="24"><rect width="24" height="24" rx="4" fill="#000"/><path fill="#fff" transform="translate(4.2 4.2) scale(0.65)" d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg>',
   anthropic: '<svg viewBox="0 0 24 24" width="24" height="24"><rect width="24" height="24" rx="4" fill="#d97757"/><path fill="#fff" d="M12 4L4 20h3.5l1.5-3h6l1.5 3H20L12 4zm-1.5 10l1.5-3 1.5 3h-3z"/></svg>',
   xai: '<svg viewBox="0 0 24 24" width="24" height="24"><rect width="24" height="24" rx="4" fill="#000"/><path fill="#fff" d="M6 5l4.5 7-4.5 7h2.5l3.5-5.5 3.5 5.5H18l-4.5-7 4.5-7h-2.5l-3.5 5.5L8.5 5H6z"/></svg>',
   zai: '<svg viewBox="0 0 24 24" width="24" height="24"><rect width="24" height="24" rx="4" fill="#2d5bff"/><path fill="#fff" d="M6 6h12v2.2L9.2 16H18v2H6v-2.2L14.8 8H6z"/></svg>',
+  // Amazon Nova mark (user-supplied PNG, transparent background); served from /assets/nova.png.
+  nova: '<img src="/assets/nova.png" alt="" width="24" height="24" decoding="async">',
+  custom: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#475569" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="4" width="17" height="6.5" rx="1.5"/><rect x="3.5" y="13.5" width="17" height="6.5" rx="1.5"/><path d="M7 7.25h.01M7 16.75h.01M11 7.25h6M11 16.75h6"/></svg>',
   default: '<svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" fill="#9ca3af"/><circle cx="12" cy="12" r="4" fill="#fff"/></svg>'
+};
+
+// Clouds the gateway reaches (header pill). Google Cloud: the demo's own asset; Azure + AWS: Simple Icons paths
+// (simple-icons/icons/microsoftazure.svg, amazonwebservices.svg) in brand colours.
+const CLOUD_LOGOS = {
+  gcp: { name: 'Google Cloud', html: '<img src="/assets/google-cloud.png" alt="" width="24" height="24" decoding="async">' },
+  azure: { name: 'Microsoft Azure', html: '<svg viewBox="0 0 24 24" width="24" height="24"><path fill="#0078D4" d="M22.379 23.343a1.62 1.62 0 0 0 1.536-2.14v.002L17.35 1.76A1.62 1.62 0 0 0 15.816.657H8.184A1.62 1.62 0 0 0 6.65 1.76L.086 21.204a1.62 1.62 0 0 0 1.536 2.139h4.741a1.62 1.62 0 0 0 1.535-1.103l.977-2.892 4.947 3.675c.28.208.618.32.966.32m-3.084-12.531 3.624 10.739a.54.54 0 0 1-.51.713v-.001h-.03a.54.54 0 0 1-.322-.106l-9.287-6.9h4.853m6.313 7.006c.116-.326.13-.694.007-1.058L9.79 1.76a1.722 1.722 0 0 0-.007-.02h6.034a.54.54 0 0 1 .512.366l6.562 19.445a.54.54 0 0 1-.338.684"/></svg>' },
+  aws: { name: 'AWS', html: '<svg viewBox="0 0 24 24" width="24" height="24"><path fill="#232F3E" d="M6.763 10.036c0 .296.032.535.088.71.064.176.144.368.256.576.04.063.056.127.056.183 0 .08-.048.16-.152.24l-.503.335a.383.383 0 0 1-.208.072c-.08 0-.16-.04-.239-.112a2.47 2.47 0 0 1-.287-.375 6.18 6.18 0 0 1-.248-.471c-.622.734-1.405 1.101-2.347 1.101-.67 0-1.205-.191-1.596-.574-.391-.384-.59-.894-.59-1.533 0-.678.239-1.23.726-1.644.487-.415 1.133-.623 1.955-.623.272 0 .551.024.846.064.296.04.6.104.918.176v-.583c0-.607-.127-1.03-.375-1.277-.255-.248-.686-.367-1.3-.367-.28 0-.568.031-.863.103-.295.072-.583.16-.862.272a2.287 2.287 0 0 1-.28.104.488.488 0 0 1-.127.023c-.112 0-.168-.08-.168-.247v-.391c0-.128.016-.224.056-.28a.597.597 0 0 1 .224-.167c.279-.144.614-.264 1.005-.36a4.84 4.84 0 0 1 1.246-.151c.95 0 1.644.216 2.091.647.439.43.662 1.085.662 1.963v2.586zm-3.24 1.214c.263 0 .534-.048.822-.144.287-.096.543-.271.758-.51.128-.152.224-.32.272-.512.047-.191.08-.423.08-.694v-.335a6.66 6.66 0 0 0-.735-.136 6.02 6.02 0 0 0-.75-.048c-.535 0-.926.104-1.19.32-.263.215-.39.518-.39.917 0 .375.095.655.295.846.191.2.47.296.838.296zm6.41.862c-.144 0-.24-.024-.304-.08-.064-.048-.12-.16-.168-.311L7.586 5.55a1.398 1.398 0 0 1-.072-.32c0-.128.064-.2.191-.2h.783c.151 0 .255.025.31.08.065.048.113.16.16.312l1.342 5.284 1.245-5.284c.04-.16.088-.264.151-.312a.549.549 0 0 1 .32-.08h.638c.152 0 .256.025.32.08.063.048.12.16.151.312l1.261 5.348 1.381-5.348c.048-.16.104-.264.16-.312a.52.52 0 0 1 .311-.08h.743c.127 0 .2.065.2.2 0 .04-.009.08-.017.128a1.137 1.137 0 0 1-.056.2l-1.923 6.17c-.048.16-.104.263-.168.311a.51.51 0 0 1-.303.08h-.687c-.151 0-.255-.024-.32-.08-.063-.056-.119-.16-.15-.32l-1.238-5.148-1.23 5.14c-.04.16-.087.264-.15.32-.065.056-.177.08-.32.08zm10.256.215c-.415 0-.83-.048-1.229-.143-.399-.096-.71-.2-.918-.32-.128-.071-.215-.151-.247-.223a.563.563 0 0 1-.048-.224v-.407c0-.167.064-.247.183-.247.048 0 .096.008.144.024.048.016.12.048.2.08.271.12.566.215.878.279.319.064.63.096.95.096.502 0 .894-.088 1.165-.264a.86.86 0 0 0 .415-.758.777.777 0 0 0-.215-.559c-.144-.151-.416-.287-.807-.415l-1.157-.36c-.583-.183-1.014-.454-1.277-.813a1.902 1.902 0 0 1-.4-1.158c0-.335.073-.63.216-.886.144-.255.335-.479.575-.654.24-.184.51-.32.83-.415.32-.096.655-.136 1.006-.136.175 0 .359.008.535.032.183.024.35.056.518.088.16.04.312.08.455.127.144.048.256.096.336.144a.69.69 0 0 1 .24.2.43.43 0 0 1 .071.263v.375c0 .168-.064.256-.184.256a.83.83 0 0 1-.303-.096 3.652 3.652 0 0 0-1.532-.311c-.455 0-.815.071-1.062.223-.248.152-.375.383-.375.71 0 .224.08.416.24.567.159.152.454.304.877.44l1.134.358c.574.184.99.44 1.237.767.247.327.367.702.367 1.117 0 .343-.072.655-.207.926-.144.272-.336.511-.583.703-.248.2-.543.343-.886.447-.36.111-.734.167-1.142.167zM21.698 16.207c-2.626 1.94-6.442 2.969-9.722 2.969-4.598 0-8.74-1.7-11.87-4.526-.247-.223-.024-.527.272-.351 3.384 1.963 7.559 3.153 11.877 3.153 2.914 0 6.114-.607 9.06-1.852.439-.2.814.287.383.607zM22.792 14.961c-.336-.43-2.22-.207-3.074-.103-.255.032-.295-.192-.063-.36 1.5-1.053 3.967-.75 4.254-.399.287.36-.08 2.826-1.485 4.007-.215.184-.423.088-.327-.151.32-.79 1.03-2.57.695-2.994z"/></svg>' },
 };
 
 const TIER_ICONS = {
@@ -63,6 +75,62 @@ const shortLabel = t => modelLabel(t).replace(/^Gemini /, '');
 const catalogModel = id => (state.catalog && id && state.catalog[id]) || null;
 const routedLabel = (d, tier) => (catalogModel(d.model) || {}).label || d.model || modelLabel(tier);
 const routedShort = (d, tier) => routedLabel(d, tier).replace(/^Gemini /, '');
+
+/* ---------- Custom / on-prem endpoints ---------- */
+// Personal endpoint: URL, model, name and prices persist in this browser (localStorage); the optional API key lives in
+// sessionStorage only, so it is gone when the tab closes. Shared endpoints (shared-1..3) come from /api/config.
+const CUSTOM_STORE = 'llmr.customEndpoint';
+const CUSTOM_KEY_STORE = 'llmr.customEndpointKey';
+const isCustomId = id => id === 'custom' || /^shared-[1-3]$/.test(String(id));
+
+/* ---------- Cross-cloud models (served outside Google Cloud, governed by Apigee) ---------- */
+const CROSS_CLOUD = {
+  // region = endpoint region; note = where requests may actually be processed (shown on hover).
+  azure: { name: 'Microsoft Azure', short: 'Azure', region: 'southeastasia',
+    note: 'Endpoint region: Southeast Asia (Azure AI Foundry YOUR_AZURE_RESOURCE). Global Standard deployment: requests may be processed in other Azure regions.' },
+  aws: { name: 'AWS', short: 'AWS', region: 'ap-southeast-1',
+    note: 'Endpoint region: Singapore (Amazon Bedrock). APAC inference profile: requests may be processed in other Asia-Pacific regions.' },
+};
+function crossCloud(id) {
+  const s = String(id || '');
+  if (s.includes('gpt')) return 'azure';
+  if (s.includes('nova')) return 'aws';
+  return null;
+}
+const CLOUD_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19a4.5 4.5 0 1 0-1.4-8.8A6 6 0 0 0 4.5 12.5 3.5 3.5 0 0 0 6 19z"/></svg>';
+// text: 'Cross-cloud' (cards) or the cloud's short name (compact rows).
+function xcBadge(cloud, text) {
+  const c = CROSS_CLOUD[cloud];
+  const b = el('span', { class: 'xc-badge xc-' + cloud, title: `Served by ${c.name}; governed by Apigee on Google Cloud` });
+  b.innerHTML = CLOUD_ICON; // trusted constant
+  b.appendChild(document.createTextNode(text || 'Cross-cloud'));
+  return b;
+}
+function cloudChip(cloud) {
+  const c = CROSS_CLOUD[cloud];
+  return el('span', { class: 'cloud-chip xc-' + cloud, title: c.note || c.name }, [el('i', { 'aria-hidden': 'true' }), c.region || c.short]);
+}
+function loadCustom() {
+  try {
+    const c = JSON.parse(localStorage.getItem(CUSTOM_STORE) || 'null');
+    return c && typeof c.url === 'string' && typeof c.model === 'string' ? c : null;
+  } catch (e) { return null; }
+}
+function customKey() { try { return sessionStorage.getItem(CUSTOM_KEY_STORE) || ''; } catch (e) { return ''; } }
+function customCatalogEntry(c) {
+  return { id: 'custom', label: c.label || c.host, cost: c.price ? '$' : 'n/a', price: c.price || null, custom: 'personal', host: c.host, model: c.model };
+}
+// Adds/removes the personal endpoint in state.catalog to match localStorage.
+function syncCustomCatalog() {
+  if (!state.catalog) return;
+  const c = state.customEnabled ? loadCustom() : null;
+  if (c) state.catalog.custom = customCatalogEntry(c);
+  else delete state.catalog.custom;
+  if (!c) {
+    if (state.staticModel === 'custom') state.staticModel = (Object.values(state.catalog)[0] || {}).id || null;
+    TIERS.forEach(t => { if (state.prefs[t] === 'custom') { state.prefs[t] = null; state.models[t] = state.defaults[t]; } });
+  }
+}
 
 /* ---------- Theme ---------- */
 function applyTheme(theme) {
@@ -124,6 +192,7 @@ function flowDiagram(s) {
 
 /* ---------- Static routing: one explicit model for every prompt ---------- */
 function formatPrice(m) {
+  if (m.price === null) return 'Price n/a'; // custom endpoint without a price: left out of the cost KPIs
   if (!m.price || (!m.price.in && !m.price.out)) return 'Free';
   return `$${m.price.in.toFixed(2)} / $${m.price.out.toFixed(2)}`;
 }
@@ -136,6 +205,7 @@ const DEMO_HARDWARE = {
 };
 // compact: short label for narrow table cells; full text stays available as the tooltip / accessible name.
 function demoHardwareWarning(id, compact) {
+  if (isCustomId(id)) return null;
   const key = Object.keys(DEMO_HARDWARE).find(k => String(id).includes(k));
   if (!key) return null;
   const { full, short } = DEMO_HARDWARE[key];
@@ -143,6 +213,11 @@ function demoHardwareWarning(id, compact) {
     el('span', { 'aria-hidden': 'true', text: key === 'glm' ? '🧠' : '⚠️' }),
     el('span', { text: compact ? short : full }),
   ]);
+}
+
+function modelSubtitle(m) {
+  if (isCustomId(m.id)) return `${m.model || 'model'} · ${m.host || 'custom endpoint'}`;
+  return `${getProviderName(m.id)} · ${getHostingPlatform(m.id)}`;
 }
 
 function renderStaticModels() {
@@ -156,11 +231,12 @@ function renderStaticModels() {
   list.setAttribute('aria-label', 'Static model');
   models.forEach(m => {
     const selected = state.staticModel === m.id;
+    const xc = crossCloud(m.id);
     const logo = el('div', { class: 'app-card-icon-wrap static-logo' });
     logo.innerHTML = getProviderLogo(m.id); // trusted inline SVG constants
     const card = el('button', {
       type: 'button',
-      class: 'app-card static-model-card' + (selected ? ' selected' : ''),
+      class: 'app-card static-model-card' + (selected ? ' selected' : '') + (xc ? ' xc-card xc-' + xc : ''),
       role: 'radio',
       'aria-checked': String(selected),
       title: m.label,
@@ -169,11 +245,16 @@ function renderStaticModels() {
       logo,
       el('div', { class: 'app-card-body' }, [
         el('div', { class: 'app-card-main-row' }, [
-          el('span', { class: 'app-card-name', text: m.label }),
+          el('span', { class: 'static-title-group' }, [
+            el('span', { class: 'app-card-name', text: m.label }),
+            m.custom ? el('span', { class: 'custom-ep-tag ' + m.custom, text: m.custom === 'shared' ? 'Shared' : 'Personal' }) : null,
+            xc ? xcBadge(xc, CROSS_CLOUD[xc].short) : null,
+          ]),
           el('span', { class: 'static-price', title: 'Price per 1M tokens (input / output)', text: formatPrice(m) }),
         ]),
         el('div', { class: 'app-card-sub-row' }, [
-          el('span', { class: 'desc', text: `${getProviderName(m.id)} · ${getHostingPlatform(m.id)}` }),
+          el('span', { class: 'desc', text: modelSubtitle(m) }),
+          xc ? cloudChip(xc) : null,
         ]),
         demoHardwareWarning(m.id),
       ]),
@@ -187,6 +268,19 @@ function renderStaticModels() {
     });
     list.appendChild(card);
   });
+  renderCustomActions();
+}
+
+// "+ Add custom endpoint" / "Edit" / "Remove" for the personal endpoint (below the Static Routing list).
+function renderCustomActions() {
+  const box = $('custom-endpoint-actions');
+  if (!box) return;
+  box.replaceChildren();
+  if (!state.customEnabled) return;
+  const c = loadCustom();
+  const add = el('button', { type: 'button', class: 'customize-btn custom-ep-btn', 'aria-haspopup': 'dialog', text: c ? '✎ Edit my custom endpoint' : '＋ Add custom endpoint (on-prem / self-hosted)' });
+  add.addEventListener('click', openCustomDialog);
+  box.appendChild(add);
 }
 
 // Dynamic and static routing are mutually exclusive.
@@ -405,6 +499,74 @@ function openMapDialog() {
   if (!dlg.open) dlg.showModal();
 }
 
+/* ---------- Personal custom endpoint dialog ---------- */
+function openCustomDialog() {
+  const c = loadCustom();
+  $('custom-url').value = c ? c.url.replace(/\/chat\/completions$/, '') : '';
+  $('custom-model').value = c ? c.model : '';
+  $('custom-label').value = c && c.label !== c.host ? c.label : '';
+  $('custom-price-in').value = c && c.price ? String(c.price.in) : '';
+  $('custom-price-out').value = c && c.price ? String(c.price.out) : '';
+  $('custom-key').value = '';
+  $('custom-key').placeholder = customKey() ? 'Saved for this tab (leave empty to keep)' : 'Optional (sent as Authorization: Bearer …)';
+  $('custom-remove').classList.toggle('hidden', !c);
+  const msg = $('custom-msg');
+  msg.className = 'custom-msg';
+  msg.textContent = '';
+  if (!$('custom-dialog').open) $('custom-dialog').showModal();
+  $('custom-url').focus();
+}
+
+async function saveCustom() {
+  const val = id => $(id).value.trim();
+  const msg = $('custom-msg');
+  const key = $('custom-key').value.trim().replace(/^Bearer\s+/i, '');
+  if (key && !/^[\x21-\x7e]{1,512}$/.test(key)) { msg.className = 'custom-msg err'; msg.textContent = 'API key must be 1-512 printable characters without spaces (paste just the token, without "Bearer ").'; return; }
+  msg.className = 'custom-msg';
+  msg.textContent = 'Checking the endpoint…';
+  $('custom-save').disabled = true;
+  try {
+    const r = await fetch('/api/custom/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: val('custom-url'), model: val('custom-model'), label: val('custom-label'), priceIn: val('custom-price-in'), priceOut: val('custom-price-out') }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) {
+      msg.className = 'custom-msg err';
+      msg.textContent = `Not saved: ${j.error || 'the endpoint was rejected'}.`;
+      return;
+    }
+    try {
+      localStorage.setItem(CUSTOM_STORE, JSON.stringify({ url: j.url, host: j.host, model: j.model, label: j.label, price: j.price }));
+      if (key) sessionStorage.setItem(CUSTOM_KEY_STORE, key);
+    } catch (e) { msg.className = 'custom-msg err'; msg.textContent = 'Not saved: browser storage is unavailable.'; return; }
+    syncCustomCatalog();
+    setMode('static');
+    state.staticModel = 'custom';
+    renderStaticModels();
+    renderPrefs();
+    renderTierMap();
+    renderBanner();
+    $('custom-dialog').close();
+  } catch (e) {
+    msg.className = 'custom-msg err';
+    msg.textContent = 'Could not reach the demo backend.';
+  } finally {
+    $('custom-save').disabled = false;
+  }
+}
+
+function removeCustom() {
+  try { localStorage.removeItem(CUSTOM_STORE); sessionStorage.removeItem(CUSTOM_KEY_STORE); } catch (e) { /* storage unavailable */ }
+  syncCustomCatalog();
+  renderStaticModels();
+  renderPrefs();
+  renderTierMap();
+  renderBanner();
+  $('custom-dialog').close();
+}
+
 // Read-only summary of the tier → model mapping shown in the Dynamic Routing tab.
 function renderTierMap() {
   const box = $('tier-map');
@@ -422,7 +584,7 @@ function renderTierMap() {
     box.appendChild(el('div', { class: 'tier-map-row' }, [
       el('span', { class: 'tier-map-tier t-' + t, text: t }),
       logo,
-      el('span', { class: 'tier-map-model', text: m.label }),
+      el('span', { class: 'tier-map-model' }, [m.label, crossCloud(m.id) ? xcBadge(crossCloud(m.id), CROSS_CLOUD[crossCloud(m.id)].short) : null]),
       state.prefs[t] ? el('span', { class: 'custom-tag', title: 'Changed from the default', text: 'custom' }) : null,
     ]));
   });
@@ -441,7 +603,7 @@ function renderPresets() {
   const box = $('presets');
   box.replaceChildren();
   PRESETS.forEach(p => {
-    const b = el('button', { type: 'button', class: 'preset-btn' + (p.tricky ? ' tricky' : '') + (state.preset === p.id ? ' active' : '') }, [
+    const b = el('button', { type: 'button', class: 'preset-btn' + (p.tricky ? ' tricky' : '') + (state.preset === p.id ? ' active' : ''), 'data-scenario': p.id, 'data-title': p.title }, [
       el('span', { class: 'preset-title', text: p.title }),
       el('span', { class: 'preset-tokens', text: p.hint }),
     ]);
@@ -575,9 +737,12 @@ function renderDecision(r) {
 }
 
 /* ---------- Stats & log ---------- */
+// null = no price known (custom endpoint without a price); 0 = free.
 function priceOf(tier, usage, modelId) {
   const m = catalogModel(modelId) || state.models[tier];
-  return m && usage ? (usage.prompt * m.price.in + usage.output * m.price.out) / 1e6 : 0;
+  if (!m || !usage) return 0;
+  if (!m.price) return null;
+  return (usage.prompt * m.price.in + usage.output * m.price.out) / 1e6;
 }
 
 function recordStats(r, prompt) {
@@ -589,7 +754,8 @@ function recordStats(r, prompt) {
   entry.n += 1;
   state.requests += 1;
   state.latencySum += r.latencyMs || 0;
-  if (r.usage) { state.cost += priceOf(tier, r.usage, d.model); state.proCost += baselineCost(r.usage); }
+  const cost = r.usage ? priceOf(tier, r.usage, d.model) : null;
+  if (cost !== null) { state.cost += cost; state.proCost += baselineCost(r.usage); } // unknown price: kept out of the savings maths
 
   const entries = Object.values(state.mix);
   const total = entries.reduce((a, e) => a + e.n, 0);
@@ -632,10 +798,13 @@ function decidedBy(d, dflt) {
 function gatewayBody(mode, strategy) {
   const m = state.staticModel;
   const prefs = m ? { simple: m, standard: m, complex: m, coding: m } : state.prefs;
-  return JSON.stringify({
+  const body = {
     prompt: $('prompt').value, strategy: strategy || state.strategy || 'rules', mode, prefs,
     simulateOutage: mode !== 'route' && $('opt-outage').checked,
-  });
+  };
+  const c = loadCustom();
+  if (c && Object.values(prefs).includes('custom')) body.custom = { url: c.url, model: c.model, key: customKey() || undefined };
+  return JSON.stringify(body);
 }
 
 async function callGateway(mode, strategy) {
@@ -764,12 +933,14 @@ async function runStream() {
     if (!answer) { $('answer').classList.remove('md'); $('answer').textContent = r.error || '(empty response)'; }
     if (!r.error) recordStats(r, prompt);
   } catch (e) {
+    r.error = r.error || 'Local server unreachable';
     showAlert('error', '⛔', 'Local server unreachable', 'Could not reach the demo backend.');
     setPipeline({});
   } finally {
     clearInterval(tick);
     $('f-total').textContent = Math.round(performance.now() - t0) + ' ms';
     setBusy(false);
+    emitRunResult(chatResultDetail(r, answer));
   }
 }
 
@@ -806,6 +977,7 @@ async function compare() {
   const verdict = $('compare-verdict');
   verdict.className = 'compare-verdict';
   verdict.textContent = 'Asking each decision engine…';
+  let detail = null;
   try {
     const ids = STRATEGIES.filter(s => !s.comingSoon).map(s => s.id);
     const results = await Promise.all(ids.map(s => callGateway('route', s)));
@@ -833,17 +1005,122 @@ async function compare() {
     const v = compareVerdict(ids, results);
     verdict.className = 'compare-verdict ' + v.kind;
     verdict.textContent = v.text;
+    detail = {
+      ok: v.kind !== 'error', httpStatus: 200, latencyMs: 0, tokens: null,
+      verdict: v.kind !== 'error' ? 'allowed' : 'error', response: v.text,
+      mode: 'compare', scenarioId: state.preset, strategy: state.strategy, agreement: v.kind,
+      compare: results.map((r, i) => {
+        const d = r.decision || {};
+        const tier = d.tier || tierOfModel(d.model);
+        return {
+          strategy: ids[i], name: STRATEGY_SHORT[ids[i]] || ids[i], error: !!r.error || !d.model,
+          tier: tier || null, model: d.model ? routedShort(d, tier) : null,
+          fellBack: /fallback/.test(d.decided_by || ''), decisionMs: d.decision_ms ?? null,
+        };
+      }),
+    };
   } catch (e) {
     verdict.textContent = '';
     showAlert('error', '⛔', 'Comparison failed', 'Could not reach the demo backend.');
   } finally {
     setBusy(false);
+    emitRunResult(detail || { ok: false, httpStatus: 0, verdict: 'error', mode: 'compare', scenarioId: state.preset, compare: [] });
   }
 }
 
+/* ---------- Integration facade (guided tour; app.js never depends on tour/) ---------- */
+// Run summary for listeners. Only enums, numbers and display labels; never the API key or headers.
+function chatResultDetail(r, answer) {
+  const d = r.decision || {};
+  const tier = d.tier || tierOfModel(d.model);
+  const ok = !r.error && r.status >= 200 && r.status < 300;
+  const u = r.usage;
+  return {
+    ok, httpStatus: r.status || 0, latencyMs: r.latencyMs || 0,
+    tokens: u ? { prompt: u.prompt, completion: u.output, total: u.total } : null,
+    verdict: ok ? 'allowed' : 'error', response: String(answer || r.error || '').slice(0, 2000),
+    mode: 'chat', scenarioId: state.preset, strategy: state.strategy, static: !!state.staticModel,
+    routing: {
+      tier: tier || null,
+      model: d.model ? routedLabel(d, tier) : null,
+      decidedBy: decidedBy(d, r.strategy),
+      confidence: typeof d.confidence === 'number' ? d.confidence : null,
+      decisionMs: d.decision_ms ?? null,
+      reason: d.reason || null,
+      fellBack: /fallback/.test(d.decided_by || ''),
+      failover: !!d.failover_from && !r.error,
+      failoverFrom: d.failover_from ? ((catalogModel(d.failover_from) || {}).label || d.failover_from) : null,
+      cost: u && d.model ? priceOf(tier, u, d.model) : null,
+      baselineCost: u ? baselineCost(u) : null,
+      baselineLabel: state.baseline ? state.baseline.label : null,
+    },
+  };
+}
+
+function emitRunResult(detail) {
+  state.lastResult = detail;
+  window.dispatchEvent(new CustomEvent('demo:runresult', { detail }));
+}
+
+function loadScenario(id) {
+  const p = PRESETS.find(x => x.id === id);
+  if (!p || state.busy) return false;
+  state.preset = p.id;
+  $('prompt').value = p.text;
+  updateCharCount();
+  renderPresets();
+  return true;
+}
+
+function setStrategy(id) {
+  if (state.busy || !stratById(id)) return false;
+  if (state.staticModel) setMode('dynamic');
+  state.strategy = id;
+  renderStrategies();
+  renderBanner();
+  return true;
+}
+
+function setOutage(on) {
+  const cb = $('opt-outage');
+  cb.checked = !!on;
+  cb.closest('.opt-toggle').classList.toggle('on', cb.checked);
+}
+
+const openDialogs = () => [...document.querySelectorAll('dialog[open]')];
+
+// Published as window.demoApp at the end of init() (then 'demo:ready'), once presets and /api/config are in.
+const demoApp = {
+  loadScenario,
+  run: () => run(),
+  compare: () => compare(),
+  isRunning: () => state.busy,
+  get scenarios() { return PRESETS.map(p => ({ id: p.id, label: p.title })); },
+  get selectedScenario() { return state.preset; },
+  get lastResult() { return state.lastResult || null; },
+  get mode() { return state.staticModel ? 'static' : 'dynamic'; },
+  setMode: m => { if (!state.busy) setMode(m === 'static' ? 'static' : 'dynamic'); },
+  setStrategy,
+  setOutage,
+  isOutage: () => $('opt-outage').checked,
+  stats: () => ({
+    requests: state.requests, cost: state.cost, baselineCost: state.proCost,
+    savedPct: state.proCost > 0 ? Math.round((1 - state.cost / state.proCost) * 100) : null,
+    baselineLabel: state.baseline ? state.baseline.label : null,
+  }),
+  openArch: () => { const d = $('arch-dialog'); if (!d.open) d.showModal(); },
+  // All native <dialog>s count as the "arch" layer: the tour yields Esc to them and closes them between missions.
+  closeArch: () => openDialogs().forEach(d => d.close()),
+  isArchOpen: () => openDialogs().length > 0,
+  isOverlayOpen: () => openDialogs().length > 0,
+  openAdmin: () => {}, closeAdmin: () => {}, isAdminOpen: () => false,
+  setTheme: t => applyTheme(t === 'dark' ? 'dark' : 'light'),
+};
+
 /* ---------- Left panel resizer ---------- */
-const PANEL_DEFAULT_W = 540;
+const PANEL_DEFAULT_W = 560;
 const PANEL_MIN_W = 320;
+const PANEL_W_KEY = 'llmr-panel-w-v4';
 function initPanelResizer() {
   const panel = $('left-panel');
   const handle = $('panel-resizer');
@@ -856,10 +1133,10 @@ function initPanelResizer() {
     handle.setAttribute('aria-valuenow', String(clamped));
     handle.setAttribute('aria-valuemin', String(PANEL_MIN_W));
     handle.setAttribute('aria-valuemax', String(maxW()));
-    if (persist) { try { localStorage.setItem('llmr-panel-w', String(clamped)); } catch (e) { /* ignore */ } }
+    if (persist) { try { localStorage.setItem(PANEL_W_KEY, String(clamped)); } catch (e) { /* ignore */ } }
   };
   let saved = NaN;
-  try { saved = parseInt(localStorage.getItem('llmr-panel-w'), 10); } catch (e) { /* ignore */ }
+  try { ['llmr-panel-w', 'llmr-panel-w-v2', 'llmr-panel-w-v3'].forEach(k => localStorage.removeItem(k)); saved = parseInt(localStorage.getItem(PANEL_W_KEY), 10); } catch (e) { /* ignore */ }
   apply(Number.isFinite(saved) ? saved : PANEL_DEFAULT_W, false);
 
   let startX = 0, startW = 0;
@@ -909,6 +1186,7 @@ function renderCost(r, d, tier) {
   box.removeAttribute('title');
   if (!r.usage || !d.model) { box.textContent = '–'; return; }
   const cost = priceOf(tier, r.usage, d.model);
+  if (cost === null) { box.textContent = 'n/a'; box.title = 'No price set for this custom endpoint'; return; }
   const base = baselineCost(r.usage);
   box.appendChild(document.createTextNode(formatUsd(cost)));
   if (base > 0 && state.baseline && state.baseline.id !== d.model) {
@@ -1003,11 +1281,20 @@ function renderMarkdown(box, src) {
 function renderLogoStack() {
   const box = $('logo-stack');
   if (!box) return;
-  [['gemini', 'Gemini & Gemma'], ['azure', 'GPT (Azure AI Foundry)'], ['anthropic', 'Claude'], ['xai', 'Grok'], ['zai', 'GLM (Vertex AI MaaS)']].forEach(([k, name]) => {
+  [['gemini', 'Gemini & Gemma'], ['openai', 'GPT (Azure AI Foundry)'], ['nova', 'Nova (Amazon Bedrock)'], ['anthropic', 'Claude'], ['xai', 'Grok'], ['zai', 'GLM (Vertex AI MaaS)']].forEach(([k, name]) => {
     const chip = el('span', { class: 'logo-chip logo-' + k, title: name });
     chip.innerHTML = LOGOS[k]; // trusted inline SVG constants
     box.appendChild(chip);
   });
+  // Divider, then the clouds the gateway reaches (Google Cloud, Microsoft Azure, AWS).
+  box.appendChild(el('span', { class: 'stack-sep', 'aria-hidden': 'true' }));
+  const clouds = el('span', { class: 'logo-stack cloud-stack' });
+  Object.entries(CLOUD_LOGOS).forEach(([k, c]) => {
+    const chip = el('span', { class: 'logo-chip cloud-' + k, title: c.name });
+    chip.innerHTML = c.html; // trusted constants
+    clouds.appendChild(chip);
+  });
+  box.appendChild(clouds);
 }
 
 async function init() {
@@ -1041,23 +1328,31 @@ async function init() {
   $('opt-outage').addEventListener('change', () => $('opt-outage').closest('.opt-toggle').classList.toggle('on', $('opt-outage').checked));
   $('tab-dynamic').addEventListener('click', () => { if (!state.busy) setMode('dynamic'); });
   $('tab-static').addEventListener('click', () => { if (!state.busy) setMode('static'); });
+  $('custom-close').addEventListener('click', () => $('custom-dialog').close());
+  $('custom-cancel').addEventListener('click', () => $('custom-dialog').close());
+  $('custom-dialog').addEventListener('click', e => { if (e.target === $('custom-dialog')) $('custom-dialog').close(); });
+  $('custom-form').addEventListener('submit', e => { e.preventDefault(); saveCustom(); });
+  $('custom-remove').addEventListener('click', removeCustom);
 
   try {
     const cfg = await fetch('/api/config').then(r => r.json());
     state.defaults = cfg.models;
     state.models = { ...cfg.models };
     state.catalog = cfg.catalog;
-    // Savings baseline: the most expensive model in the catalog ("what if every prompt went to the premium model?").
-    state.baseline = Object.values(cfg.catalog).reduce((a, m) => (!a || m.price.in + m.price.out > a.price.in + a.price.out ? m : a), null);
+    state.customEnabled = !!(cfg.customEndpoints && cfg.customEndpoints.enabled);
+    // Savings baseline: the most expensive built-in model ("what if every prompt went to the premium model?").
+    state.baseline = Object.values(cfg.catalog).filter(m => m.price && !isCustomId(m.id))
+      .reduce((a, m) => (!a || m.price.in + m.price.out > a.price.in + a.price.out ? m : a), null);
+    syncCustomCatalog();
     $('s-pro-lbl').textContent = `If always ${state.baseline.label}`;
     $('s-pro-lbl').title = `Same tokens priced at ${state.baseline.label} (${formatPrice(state.baseline)} per 1M tokens in / out)`;
     $('statusDot').className = 'status-dot ok';
-    $('statusText').textContent = 'Gateway Active';
+    $('statusText').textContent = 'Gateway Active'; $('statusText').parentElement.title = 'Apigee gateway: Gateway Active';
     renderPrefs();
     renderStaticModels();
   } catch (e) {
     $('statusDot').className = 'status-dot err';
-    $('statusText').textContent = 'Backend Offline';
+    $('statusText').textContent = 'Backend Offline'; $('statusText').parentElement.title = 'Apigee gateway: Backend Offline';
   }
   renderTierMap();
   renderBanner();
@@ -1068,6 +1363,8 @@ async function init() {
   $('prompt').value = PRESETS[0].text;
   renderPresets();
   updateCharCount();
+  window.demoApp = demoApp;
+  window.dispatchEvent(new Event('demo:ready'));
 }
 
 document.addEventListener('DOMContentLoaded', init);
@@ -1092,11 +1389,13 @@ function showReasoning(text) {
 }
 
 function getProviderLogo(id) {
+  if (isCustomId(id)) return LOGOS.custom;
   if (id.includes('gemini') || id.includes('gemma')) return LOGOS.gemini;
-  if (id.includes('gpt')) return LOGOS.azure;
+  if (id.includes('gpt')) return LOGOS.openai;
   if (id.includes('claude')) return LOGOS.anthropic;
   if (id.includes('grok')) return LOGOS.xai;
   if (id.includes('glm')) return LOGOS.zai;
+  if (id.includes('nova')) return LOGOS.nova;
   return LOGOS.default;
 }
 
@@ -1111,37 +1410,41 @@ const TIER_DESC = {
 
 const SUITABILITY = {
   simple: {
-    recommended: ['gemini-3.5-flash-lite', 'gpt-4.1-nano', 'gemma2:2b'],
+    recommended: ['gemini-3.5-flash-lite', 'gpt-4.1-nano', 'nova-lite', 'gemma2:2b'],
     unsuitable: ['gemini-3.1-pro-preview', 'grok-4.6@001', 'gemini-2.5-pro', 'glm-5.2']
   },
   standard: {
     recommended: ['gemini-3.5-flash', 'claude-sonnet-4-5@20250929'],
-    unsuitable: ['gemma2:2b', 'gpt-4.1-nano']
+    unsuitable: ['gemma2:2b', 'gpt-4.1-nano', 'nova-lite']
   },
   complex: {
     recommended: ['gemini-3.1-pro-preview', 'grok-4.6@001', 'glm-5.2'],
-    unsuitable: ['gemma2:2b', 'gpt-4.1-nano', 'gemini-3.5-flash-lite']
+    unsuitable: ['gemma2:2b', 'gpt-4.1-nano', 'nova-lite', 'gemini-3.5-flash-lite']
   },
   coding: {
     recommended: ['gemini-2.5-pro', 'claude-sonnet-4-5@20250929', 'glm-5.2'],
-    unsuitable: ['gemma2:2b', 'gpt-4.1-nano', 'gemini-3.5-flash-lite']
+    unsuitable: ['gemma2:2b', 'gpt-4.1-nano', 'nova-lite', 'gemini-3.5-flash-lite']
   }
 };
 
 function getHostingPlatform(id) {
+  if (isCustomId(id)) return (catalogModel(id) || {}).host || 'Custom endpoint';
   if (id.includes('gemma')) return 'Cloud Run';
   if (id.includes('gpt')) return 'Azure AI Foundry';
   if (id.includes('grok')) return 'Vertex AI Model Garden';
   if (id.includes('glm')) return 'Vertex AI MaaS';
+  if (id.includes('nova')) return 'Amazon Bedrock';
   return 'Google Cloud Vertex';
 }
 
 function getProviderName(id) {
+  if (isCustomId(id)) return 'Custom';
   if (id.includes('gemini') || id.includes('gemma')) return 'Google';
   if (id.includes('gpt')) return 'OpenAI';
   if (id.includes('claude')) return 'Anthropic';
   if (id.includes('grok')) return 'xAI';
   if (id.includes('glm')) return 'Z.ai';
+  if (id.includes('nova')) return 'Amazon';
   return 'Unknown';
 }
 
@@ -1184,9 +1487,10 @@ function renderPrefs() {
     tdInfo.appendChild(logoWrapper);
     
     const infoDiv = el('div');
-    infoDiv.appendChild(el('div', { class: 'model-rc-name', text: m.label }));
-    let priceText = 'Free';
-    if (m.price.in > 0 || m.price.out > 0) {
+    const xc = crossCloud(m.id);
+    infoDiv.appendChild(el('div', { class: 'model-rc-name' }, [m.label, xc ? xcBadge(xc, CROSS_CLOUD[xc].short) : null]));
+    let priceText = m.price ? 'Free' : 'Price n/a';
+    if (m.price && (m.price.in > 0 || m.price.out > 0)) {
       priceText = `${m.price.in.toFixed(2)} in / ${m.price.out.toFixed(2)} out per 1M`;
     }
     infoDiv.appendChild(el('div', { class: 'model-rc-price', text: priceText }));

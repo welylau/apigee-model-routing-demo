@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<TargetEndpoint name="custom">
+    <Description>Custom / on-prem OpenAI-compatible endpoint (personal: x-custom-endpoint-* headers; shared: KVM custom-endpoints)</Description>
+    <PreFlow name="PreFlow">
+        <Request>
+            <Step>
+                <Name>KVM-GetCustomEndpoint</Name>
+                <Condition>llmr.custom_slot != "custom"</Condition>
+            </Step>
+            <Step>
+                <Name>JS-CustomRequest</Name>
+            </Step>
+            <Step>
+                <Name>RF-CustomEndpointInvalid</Name>
+                <Condition>llmr.custom_invalid = "true"</Condition>
+            </Step>
+            <Step>
+                <Name>AM-SetCustomTarget</Name>
+            </Step>
+            <Step>
+                <Name>AM-SetCustomKey</Name>
+                <Condition>llmr.custom_has_key = "true"</Condition>
+            </Step>
+        </Request>
+        <Response>
+            <!-- Model failover: errors reach this flow (success.codes), retry once on a backup Gemini model. -->
+            <Step>
+                <Name>JS-FailoverCheck</Name>
+            </Step>
+            <Step>
+                <Name>AM-FailoverRequest</Name>
+                <Condition>llmr.failover_needed = "true"</Condition>
+            </Step>
+            <Step>
+                <Name>SC-Failover</Name>
+                <Condition>llmr.failover_needed = "true"</Condition>
+            </Step>
+            <Step>
+                <Name>JS-FailoverApply</Name>
+                <Condition>llmr.failover_needed = "true"</Condition>
+            </Step>
+            <Step>
+                <Name>AM-FaultResponse</Name>
+                <Condition>llmr.primary_failed = "true" and llmr.failover != "true"</Condition>
+            </Step>
+            <Step>
+                <Name>JS-CustomResponse</Name>
+                <Condition>llmr.primary_failed != "true"</Condition>
+            </Step>
+        </Response>
+    </PreFlow>
+    <HTTPTargetConnection>
+        <Properties>
+            <Property name="success.codes">1xx,2xx,3xx,4xx,5xx</Property>
+            <Property name="connect.timeout.millis">10000</Property>
+            <Property name="io.timeout.millis">120000</Property>
+        </Properties>
+        <!-- Placeholder: AM-SetCustomTarget sets target.url to the validated endpoint. -->
+        <URL>https://custom-endpoint.invalid/v1/chat/completions</URL>
+    </HTTPTargetConnection>
+</TargetEndpoint>

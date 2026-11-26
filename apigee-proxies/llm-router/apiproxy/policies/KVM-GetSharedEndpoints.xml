@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<KeyValueMapOperations mapIdentifier="custom-endpoints" continueOnError="false" enabled="true" name="KVM-GetSharedEndpoints">
+    <DisplayName>KVM-GetSharedEndpoints</DisplayName>
+    <!-- Metadata of the (up to 3) shared custom endpoints, for GET /v1/custom-endpoints. Keys are not read here. -->
+    <ExpiryTimeInSecs>60</ExpiryTimeInSecs>
+    <Get assignTo="private.shared_meta_1">
+        <Key>
+            <Parameter>shared-1</Parameter>
+        </Key>
+    </Get>
+    <Get assignTo="private.shared_meta_2">
+        <Key>
+            <Parameter>shared-2</Parameter>
+        </Key>
+    </Get>
+    <Get assignTo="private.shared_meta_3">
+        <Key>
+            <Parameter>shared-3</Parameter>
+        </Key>
+    </Get>
+</KeyValueMapOperations>

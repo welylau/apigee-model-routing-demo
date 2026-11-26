@@ -54,6 +54,19 @@
             </Request>
             <Response/>
         </Flow>
+        <Flow name="custom-endpoints">
+            <Description>List the shared custom endpoints (display metadata only, never keys). Used by the web UI catalog.</Description>
+            <Condition>request.verb = "GET" and proxy.pathsuffix MatchesPath "/v1/custom-endpoints"</Condition>
+            <Request/>
+            <Response>
+                <Step>
+                    <Name>KVM-GetSharedEndpoints</Name>
+                </Step>
+                <Step>
+                    <Name>JS-SharedEndpointsList</Name>
+                </Step>
+            </Response>
+        </Flow>
         <Flow name="not-found">
             <Request>
                 <Step>
@@ -85,8 +98,15 @@
     <HTTPProxyConnection>
         <BasePath>/llm-router</BasePath>
     </HTTPProxyConnection>
+    <RouteRule name="custom-endpoints-list">
+        <Condition>proxy.pathsuffix MatchesPath "/v1/custom-endpoints"</Condition>
+    </RouteRule>
     <RouteRule name="dry-run">
         <Condition>proxy.pathsuffix MatchesPath "/v1/route"</Condition>
+    </RouteRule>
+    <RouteRule name="custom">
+        <Condition>llmr.is_custom = "true"</Condition>
+        <TargetEndpoint>custom</TargetEndpoint>
     </RouteRule>
     <RouteRule name="gemma">
         <Condition>llmr.is_gemma = "true"</Condition>
@@ -99,6 +119,10 @@
     <RouteRule name="maas">
         <Condition>llmr.is_maas = "true"</Condition>
         <TargetEndpoint>maas</TargetEndpoint>
+    </RouteRule>
+    <RouteRule name="bedrock">
+        <Condition>llmr.is_bedrock = "true"</Condition>
+        <TargetEndpoint>bedrock</TargetEndpoint>
     </RouteRule>
     <RouteRule name="vertex">
         <TargetEndpoint>vertex</TargetEndpoint>

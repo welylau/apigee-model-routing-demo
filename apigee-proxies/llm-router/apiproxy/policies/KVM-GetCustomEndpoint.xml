@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<KeyValueMapOperations mapIdentifier="custom-endpoints" continueOnError="false" enabled="true" name="KVM-GetCustomEndpoint">
+    <DisplayName>KVM-GetCustomEndpoint</DisplayName>
+    <!-- Shared custom endpoint registered by scripts/custom-endpoint.sh: "<slot>" = JSON metadata, "<slot>-key" = API key (optional). -->
+    <ExpiryTimeInSecs>60</ExpiryTimeInSecs>
+    <Get assignTo="private.custom_meta">
+        <Key>
+            <Parameter ref="llmr.custom_slot"/>
+        </Key>
+    </Get>
+    <Get assignTo="private.custom_key_kvm">
+        <Key>
+            <Parameter ref="llmr.custom_slot_key"/>
+        </Key>
+    </Get>
+</KeyValueMapOperations>

@@ -99,6 +99,16 @@
         <Condition>llmr.is_maas = "true"</Condition>
         <TargetEndpoint>maas-stream</TargetEndpoint>
     </RouteRule>
+    <!-- Custom / on-prem OpenAI-compatible endpoints: non-streaming call; custom-response.js wraps the answer as SSE. -->
+    <RouteRule name="custom-stream">
+        <Condition>llmr.is_custom = "true"</Condition>
+        <TargetEndpoint>custom-stream</TargetEndpoint>
+    </RouteRule>
+    <!-- Amazon Bedrock (Converse API, e.g. Nova Lite): non-streaming call; bedrock-response.js wraps the answer as SSE. -->
+    <RouteRule name="bedrock-stream">
+        <Condition>llmr.is_bedrock = "true"</Condition>
+        <TargetEndpoint>bedrock-stream</TargetEndpoint>
+    </RouteRule>
     <RouteRule name="vertex-stream">
         <TargetEndpoint>vertex-stream</TargetEndpoint>
     </RouteRule>

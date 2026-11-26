@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<KeyValueMapOperations mapIdentifier="bedrock-secrets" continueOnError="false" enabled="true" name="KVM-GetBedrockKey">
+    <DisplayName>KVM-GetBedrockKey</DisplayName>
+    <!-- Long-term Amazon Bedrock API key of IAM user apigee-bedrock-invoker (Nova Lite only). Encrypted env KVM. -->
+    <Get assignTo="private.bedrock_api_key">
+        <Key>
+            <Parameter>bedrock_api_key</Parameter>
+        </Key>
+    </Get>
+</KeyValueMapOperations>

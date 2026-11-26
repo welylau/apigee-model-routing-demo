@@ -9,7 +9,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
+  <!-- TOUR:BEGIN -->
+  <link rel="stylesheet" href="/tour/tour.css">
+  <!-- TOUR:END -->
   <script src="/app.js" defer></script>
+  <!-- TOUR:BEGIN -->
+  <script type="module" src="/tour/tour-engine.js"></script>
+  <!-- TOUR:END -->
 </head>
 <body>
   <div class="app-container">
@@ -33,14 +39,14 @@
           <div class="brand-title">
             <span>Apigee: Dynamic Model (LLM) Routing</span>
             </div>
-          <span class="brand-subtitle">Pluggable Decision Engine &amp; Routing Telemetry</span>
+          <span class="brand-subtitle">Pluggable Decision Engine &amp; <strong>Multi-cloud</strong> Routing Telemetry</span>
         </div>
       </div>
 
       <div class="arch-tags">
-        <div class="hero-pill" title="Apigee routes every prompt to the right model: Gemini · GPT · Claude · Grok · GLM · Gemma">
+        <div class="hero-pill" title="Apigee on Google Cloud routes every prompt to the right model (Gemini · GPT · Nova · Claude · Grok · GLM · Gemma) across Google Cloud, Microsoft Azure and AWS">
           <span class="logo-stack" id="logo-stack" aria-hidden="true"></span>
-          <span class="hero-text">One Gateway. <span class="hero-accent">Any Model.</span> Right Route.</span>
+          <span class="hero-text">One Gateway. <span class="hero-accent">Any Model.</span> <span class="hero-accent2">Any Cloud.</span></span>
         </div>
       </div>
 
@@ -59,6 +65,9 @@
             <span>Other demos</span>
           </a>
         </nav>
+        <!-- TOUR:BEGIN -->
+        <button type="button" class="header-tour-btn" id="headerTourBtn" title="Start the guided tour">🗺️ Guided Tour</button>
+        <!-- TOUR:END -->
         <div class="status-badge" title="Apigee Gateway Status">
           <span class="status-dot" id="statusDot"></span>
           <span id="statusText">Connecting…</span>
@@ -113,6 +122,7 @@
 
             <div id="static-content" class="hidden" role="tabpanel" aria-labelledby="tab-static">
               <div class="apps-grid" id="static-model-list"></div>
+              <div class="custom-ep-actions" id="custom-endpoint-actions"></div>
               <p class="static-note">ⓘ Tier rules and Settings preferences are skipped. Prices are per 1M tokens (in / out).</p>
             </div>
           </div>
@@ -272,7 +282,7 @@
         <img src="/assets/failover.png" width="2278" height="643" alt="Apigee decides the tier and model, then calls the chosen model. If it returns an error (404, 408, 429 or 5xx), Apigee retries once on the tier's backup Gemini model and returns that answer with failover headers; otherwise the answer is returned directly. The outage toggle sends x-simulate-outage: primary, which makes the chosen model's call return HTTP 404.">
       </figure>
       <ol class="rules-list outage-steps">
-        <li><strong>The toggle breaks the call on purpose.</strong> It sends <code>x-simulate-outage: primary</code>. Apigee then calls the chosen model on a path that doesn't exist (same host), so it returns <strong>HTTP 404</strong>. Nothing changes on the real backend.</li>
+        <li><strong>The toggle breaks the call on purpose.</strong> It sends <code>x-simulate-outage: primary</code>. Apigee then calls the chosen model on a path that doesn't exist (same host), so it returns <strong>HTTP 404</strong>. For Amazon Bedrock it sends a dummy key instead (<strong>HTTP 403</strong>). Nothing changes on the real backend.</li>
         <li><strong>Apigee catches the error.</strong> Instead of returning the error, it retries <strong>once</strong> on the tier's backup Gemini model on Vertex AI.</li>
         <li><strong>The caller still gets an answer.</strong> You'll see the 🔁 Failover banner, a FAILOVER tag on the routed model and an amber Model Call step. The cost is for the backup model.</li>
       </ol>
@@ -286,9 +296,9 @@
     </div>
     <div class="rules-body">
       <figure class="rules-figure">
-        <img src="/assets/architecture.png" width="3378" height="1434" alt="Top: Static Routing. The client app names the model in the x-preferred-model header; Apigee X checks the API key and spike arrest, then routes to that catalog model. Bottom: Dynamic Routing. The client sends only the prompt; Apigee X picks a tier using one of three decision strategies (a: preset rules engine, b: Gemini 3.5 Flash-Lite classifier via ServiceCallout, c: NVIDIA NemoCurator complexity classifier via ServiceCallout), then maps the tier to a model.">
+        <img src="/assets/architecture.png" width="3200" height="1800" alt="Your app calls one unified Apigee X AI Gateway endpoint. Inside Apigee: Step 1 verifies the API key, tier, allowed models and spike arrest; Step 2 makes the routing decision using in-proxy static or preset rules (~0 ms) or delegates via ServiceCallout to AI Classifiers (Gemini Flash-Lite, NVIDIA NemoCurator) and pluggable external engines (TypeSafe AI JEV, Custom Policy API); Step 3 routes and translates payloads across Google Cloud, Microsoft Azure, AWS Bedrock and on-prem/custom OpenAI endpoints, with automatic failover to backup Gemini. Every call streams telemetry to Cloud Logging and Analytics.">
       </figure>
-      <p class="rules-note">ⓘ Static: the client picks the model. Dynamic: Apigee picks it, using rules (a) or a classifier called via ServiceCallout (b, c).</p>
+      <p class="rules-note">ⓘ Static &amp; preset rules run inside Apigee (~0 ms); dynamic classifiers &amp; pluggable engines (e.g. JEV) are called via ServiceCallout, with automatic failover across Google Cloud, Azure, AWS and on-prem.</p>
     </div>
   </dialog>
   <dialog id="settings-dialog" class="rules-dialog" aria-labelledby="settings-title">
@@ -302,6 +312,42 @@
         <!-- JS will populate dropdowns here -->
       </div>
     </div>
+  </dialog>
+  <dialog id="custom-dialog" class="rules-dialog custom-dialog" aria-labelledby="custom-title">
+    <div class="rules-head">
+      <span id="custom-title">🖥️ Custom endpoint (on-prem / self-hosted)</span>
+      <button type="button" id="custom-close" class="rules-close" aria-label="Close">✕</button>
+    </div>
+    <form id="custom-form" class="rules-body custom-form" novalidate>
+      <p class="section-desc">Any <b>OpenAI-compatible</b> Chat Completions server: vLLM, Ollama, LM Studio, TGI, LiteLLM, NVIDIA NIM… Apigee calls it with the same API key check, spike arrest, routing headers and failover as every other model.</p>
+      <label class="custom-field"><span>Base URL <em>required</em></span>
+        <input id="custom-url" type="url" maxlength="300" required autocomplete="off" spellcheck="false" placeholder="https://llm.example.com/v1">
+        <small>Public HTTPS host name on port 443. <code>/chat/completions</code> is added if missing. IP addresses, <code>localhost</code> and private networks are blocked. To use an on-prem server, publish it on a public HTTPS name (load balancer, Cloudflare Tunnel, ngrok…).</small>
+      </label>
+      <label class="custom-field"><span>Model name <em>required</em></span>
+        <input id="custom-model" type="text" maxlength="128" required autocomplete="off" spellcheck="false" placeholder="llama3.1:8b">
+        <small>Sent in the request's <code>model</code> field.</small>
+      </label>
+      <label class="custom-field"><span>API key</span>
+        <input id="custom-key" type="password" maxlength="512" autocomplete="off" spellcheck="false">
+        <small>Optional. Kept in this browser tab only (cleared when you close it) and sent with each request; the demo never stores or logs it.</small>
+      </label>
+      <label class="custom-field"><span>Display name</span>
+        <input id="custom-label" type="text" maxlength="40" autocomplete="off" placeholder="On-prem Llama">
+      </label>
+      <div class="custom-field-row">
+        <label class="custom-field"><span>Input price</span><input id="custom-price-in" type="number" min="0" max="1000" step="0.001" inputmode="decimal" placeholder="USD / 1M"></label>
+        <label class="custom-field"><span>Output price</span><input id="custom-price-out" type="number" min="0" max="1000" step="0.001" inputmode="decimal" placeholder="USD / 1M"></label>
+      </div>
+      <small class="custom-note">Leave both prices empty to show “Price n/a”; those answers are left out of the cost and savings figures.</small>
+      <div class="custom-msg" id="custom-msg" role="status" aria-live="polite"></div>
+      <div class="custom-actions">
+        <button type="button" id="custom-remove" class="btn btn-secondary hidden">Remove</button>
+        <span class="custom-spacer"></span>
+        <button type="button" id="custom-cancel" class="btn btn-secondary">Cancel</button>
+        <button type="submit" id="custom-save" class="btn btn-primary">Check &amp; save</button>
+      </div>
+    </form>
   </dialog>
 </body>
 </html>

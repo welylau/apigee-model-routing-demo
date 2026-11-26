@@ -1,9 +1,10 @@
 # Apigee X AI Gateway: Dynamic Model (LLM) Routing
-### One Gateway. Any Model. Right Route. Cost-aware, pluggable model routing with failover for GenAI apps
+### One Gateway. Any Model. Any Cloud. Cost-aware, pluggable model routing with failover for GenAI apps
 
 [![Apigee X](https://img.shields.io/badge/Google%20Cloud-Apigee%20X-4285F4?logo=googlecloud&logoColor=white)](https://cloud.google.com/apigee)
 [![Vertex AI](https://img.shields.io/badge/Vertex%20AI-Gemini%203.x%20%7C%20Claude%20%7C%20Grok%20%7C%20GLM-EA4335?logo=googlecloud&logoColor=white)](https://cloud.google.com/vertex-ai)
 [![Azure AI Foundry](https://img.shields.io/badge/Azure%20AI%20Foundry-GPT--4.1%20Nano-0078D4?logo=microsoftazure&logoColor=white)](https://ai.azure.com)
+[![AWS Bedrock](https://img.shields.io/badge/AWS%20Bedrock-Nova%20Lite-FF9900?logo=amazonwebservices&logoColor=white)](https://aws.amazon.com/bedrock/)
 [![NVIDIA NemoCurator](https://img.shields.io/badge/NVIDIA-NemoCurator%20Classifier-76B900?logo=nvidia&logoColor=white)](https://huggingface.co/nvidia/prompt-task-and-complexity-classifier)
 [![Cloud Run](https://img.shields.io/badge/Deployment-Cloud%20Run-4285F4?logo=googlecloud&logoColor=white)](https://cloud.google.com/run)
 [![Node.js](https://img.shields.io/badge/Web%20UI-Node.js%2018%2B%20(zero%20deps)-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
@@ -19,7 +20,9 @@
 > This repository shows how **Google Cloud Apigee X** acts as an **AI Gateway** that decides, **per prompt**, which LLM should answer.
 > Simple questions go to a cheap, fast model; hard reasoning and coding go to a premium one. The client never has to know which model exists.
 >
-> It features **three pluggable decision strategies** (a preset rules engine, a **Gemini 3.5 Flash-Lite** classifier and a self-hosted **NVIDIA NemoCurator** complexity classifier), **multi-provider backends** (Vertex AI, Azure AI Foundry, Cloud Run), **automatic model failover**, **routing telemetry** in response headers and Apigee Analytics, and a **web UI** that shows every decision and its cost.
+> It features **three pluggable decision strategies** (a preset rules engine, a **Gemini 3.5 Flash-Lite** classifier and a self-hosted **NVIDIA NemoCurator** complexity classifier), **multi-cloud & on-prem backends** (Vertex AI, Azure AI Foundry, AWS Bedrock, Cloud Run, plus custom OpenAI-compatible endpoints), **automatic model failover**, **routing telemetry** in response headers and Apigee Analytics, and a **web UI** with an interactive **Guided Tour** that shows every decision and its cost.
+>
+> *Disclaimer: This is a reference demo, not an official Google product.*
 
 ---
 
@@ -50,7 +53,7 @@ Most GenAI apps hard-code one model. Pick a premium model and you overpay for "W
                                                   └─────────────┬─────────────┘
                                    ┌────────────────────────────┼──────────────────────┐
                                    ▼                            ▼                      ▼
-                          Gemini 3.5 Flash-Lite        Gemini 3.1 Pro / 2.5 Pro   Claude · Grok · GLM · GPT · Gemma
+                          Gemini 3.5 Flash-Lite        Gemini 3.1 Pro / 2.5 Pro   Claude · Grok · GLM · GPT · Nova · On-prem
   • Cost-aware: each prompt goes to the cheapest model that can handle it.
   • Pluggable: swap the decision strategy or the tier → model mapping without touching clients.
   • Resilient: if the chosen model fails, Apigee retries once on a backup Gemini model.
@@ -64,21 +67,21 @@ Most GenAI apps hard-code one model. Pick a premium model and you overpay for "W
    * The strategy is chosen per request (`x-router-strategy`): a **preset rules engine** in the proxy, a **Gemini 3.5 Flash-Lite** classifier or the **NVIDIA NemoCurator** classifier, both called via `ServiceCallout`.
 2. **Static routing**:
    * The client pins a model with `x-preferred-model`. Apigee skips the decision and routes straight to it: same API, same key, same telemetry.
-3. **Multi-provider backends behind one API**:
-   * Gemini, Claude and Grok on **Vertex AI**, the open model GLM 5.2 as a fully managed **Vertex AI MaaS** API, GPT-4.1 Nano on **Azure AI Foundry** and Gemma 2 on **Cloud Run**. Apigee translates requests and responses to and from the Gemini format, so clients see one schema.
+3. **Multi-cloud & on-prem backends behind one API**:
+   * Gemini, Claude and Grok on **Vertex AI**, the open model GLM 5.2 as a fully managed **Vertex AI MaaS** API, GPT-4.1 Nano on **Azure AI Foundry**, Amazon Nova Lite on **AWS Bedrock**, Gemma 2 on **Cloud Run**, and **custom / on-prem OpenAI-compatible endpoints** (vLLM, Ollama, NVIDIA NIM, LiteLLM, TGI). Apigee translates requests and responses to and from the Gemini format, so clients see one schema.
 4. **Model failover**:
    * If the chosen model returns 404, 408, 429 or 5xx, Apigee retries **once** on the tier's backup Gemini model and returns that answer with `x-route-failover-*` headers.
 5. **Routing telemetry and cost visibility**:
    * Every response carries `x-routed-model`, `x-route-tier`, `x-route-reason` and more. Data collectors feed an Apigee custom report, and the web UI shows per-request cost and savings.
 6. **Gateway security**:
-   * API key + SpikeArrest, prompt size limit, allow-listed headers, generic error bodies, secrets in KVM and Google ID tokens for private Cloud Run services.
+   * API key + SpikeArrest, prompt size limit, allow-listed headers, SSRF checks on custom endpoints (public HTTPS on port 443 + public DNS resolution), generic error bodies, secrets in KVM and Google ID tokens for private Cloud Run services.
 
 ---
 
 ## 🏛️ High-Level Architecture
 
 <p align="center">
-  <img src="docs/architecture.png" alt="Static routing: the client names the model and Apigee X routes to it. Dynamic routing: Apigee X decides the tier with the rules engine, a Gemini 3.5 Flash-Lite classifier or the NVIDIA NemoCurator classifier, then maps the tier to a model." width="100%">
+  <img src="docs/architecture.png" alt="Your app calls one unified Apigee X AI Gateway endpoint. Step 1 verifies the API key, tier, allowed models and spike arrest; Step 2 decides the route via static/preset rules in-proxy (~0 ms) or ServiceCallout to AI Classifiers (Gemini Flash-Lite, NVIDIA NemoCurator) and pluggable engines; Step 3 routes and translates payloads across Google Cloud, Microsoft Azure, AWS Bedrock and on-prem/custom OpenAI endpoints, with automatic failover to backup Gemini." width="100%">
 </p>
 
 ### Request flow inside the proxy
@@ -132,9 +135,11 @@ All of these live in [routing.properties](apigee-proxies/llm-router/apiproxy/res
 | GLM 5.2 (`glm-5.2`) | Vertex AI MaaS (Z.ai open model, fully managed, global OpenAI-compatible `chat/completions`) | Opt-in only. Generic `maas` target; reasoning shown as Gemini `thought` parts; `max_tokens` floor |
 | Claude Sonnet 4.5 | Vertex AI (Anthropic, `us-east5`) | `rawPredict`; translated to/from the Gemini format |
 | GPT-4.1 Nano | Azure AI Foundry (`/openai/v1/chat/completions`) | Key from KVM `azure-secrets`; translated to/from the Gemini format; `x-ratelimit-*` headers stripped |
+| Amazon Nova Lite (`nova-lite`) | Amazon Bedrock Converse API, `apac.amazon.nova-lite-v1:0` inference profile (calls stay in Asia-Pacific) | Bedrock API key (bearer) from KVM `bedrock-secrets`; IAM user allowed Nova Lite only; allow-listed in `bedrock_models`; translated to/from the Gemini format; `x-amzn-*` headers stripped |
 | Gemma 2 2B | Cloud Run (Ollama), Google ID token | Demo only (small CPU instance) |
+| Custom / on-prem (`custom`, `shared-1`..`shared-3`) | Any public HTTPS OpenAI-compatible `chat/completions` server (vLLM, Ollama, NVIDIA NIM, LiteLLM, TGI…) | Personal per-tab endpoint (`x-custom-endpoint-*` headers) or shared in encrypted KVM `custom-endpoints` via `scripts/custom-endpoint.sh`; SSRF checks + optional `custom_allowed_hosts` |
 
-Claude, GPT, GLM and Gemma answers arrive as one SSE event on `/v1/stream`.
+Claude, GPT, GLM, Nova, Gemma and custom-endpoint answers arrive as one SSE event on `/v1/stream`.
 
 ### Vertex AI MaaS: open models as a managed service (GLM 5.2)
 
@@ -154,6 +159,14 @@ curl -s -X POST "$APIGEE_HOST/llm-router/v1/chat" -H "x-api-key: $KEY" \
          reasoning_chars: ([.candidates[0].content.parts[] | select(.thought == true) | .text] | join("") | length),
          usage: .usageMetadata}'
 ```
+
+### Custom / on-prem endpoints (vLLM, Ollama, NVIDIA NIM, LiteLLM…)
+
+Any **OpenAI-compatible Chat Completions** server can sit behind the same Apigee gateway, API key check, SpikeArrest, telemetry and Gemini failover:
+
+* **Personal endpoint (`custom`)**: in the web UI under **Static Routing** (or **Customize** tier mapping), click **＋ Add custom endpoint (on-prem / self-hosted)** and supply a base URL (`https://llm.example.com/v1`), model name (`llama3.1:8b`), optional API key, display name and optional token prices. Settings stay in browser `sessionStorage` for that tab only; the BFF forwards `x-custom-endpoint-url`, `x-custom-endpoint-model` and `x-custom-endpoint-key` per request and never stores or logs them.
+* **Shared endpoints (`shared-1`..`shared-3`)**: admins register up to three shared endpoints in the encrypted environment KVM `custom-endpoints` using [scripts/custom-endpoint.sh](scripts/custom-endpoint.sh). `GET /llm-router/v1/custom-endpoints` returns display metadata only (never keys) so every demo user sees them in the catalog.
+* **SSRF & host guardrails**: both [web-ui/endpoint-policy.js](web-ui/endpoint-policy.js) (URL shape + DNS resolution to public IPs only) and [custom-request.js](apigee-proxies/llm-router/apiproxy/resources/jsc/custom-request.js) enforce `https://` on port 443, reject IP literals, internal suffixes and wildcard-DNS domains (`nip.io`, `sslip.io`…), and optionally enforce `custom_allowed_hosts` in [routing.properties](apigee-proxies/llm-router/apiproxy/resources/properties/routing.properties). To test an on-prem server, expose it on a public HTTPS hostname (load balancer, Cloudflare Tunnel, ngrok…).
 
 ### Coding agents: Claude Code through the gateway (any allowed model)
 
@@ -236,6 +249,7 @@ Base path: `https://<your-apigee-host>/llm-router`
 | POST | `/v1/route` | Dry run: returns the routing decision only (no model call, no LLM cost) |
 | POST | `/v1/chat` | Routes and calls the chosen model; decision returned in `x-route-*` headers |
 | POST | `/v1/stream` | Same routing, answer as Gemini-style SSE (separate `stream` ProxyEndpoint with `response.streaming.enabled`) |
+| GET | `/v1/custom-endpoints` | Returns display metadata (never keys) for admin-registered shared custom endpoints (`shared-1`..`shared-3`) |
 
 Body: `{"prompt":"..."}` or Gemini-native `{"contents":[...], "generationConfig":{...}}`.
 
@@ -244,7 +258,8 @@ Body: `{"prompt":"..."}` or Gemini-native `{"contents":[...], "generationConfig"
 | `x-api-key` | Apigee app key (required) |
 | `x-router-strategy` | `rules` \| `classifier` \| `nvidia` (allow-listed; default from `routing.properties`) |
 | `x-preferred-model-<tier>` | Override the model for one tier (`simple`, `standard`, `complex`, `coding`) |
-| `x-preferred-model` | Override the model for every tier (Static Routing) |
+| `x-preferred-model` | Override the model for every tier (Static Routing, incl. `custom` and `shared-1`..`shared-3`) |
+| `x-custom-endpoint-url` / `-model` / `-key` | URL, model name and optional bearer key when routing to `custom` (stripped before calling the backend) |
 | `x-simulate-outage: primary` | Demo only: forces the chosen model's call to fail to show failover |
 
 | Response header | Meaning |
@@ -275,15 +290,16 @@ curl -s -X POST "https://<your-apigee-host>/llm-router/v1/route" \
 
 ### UI Capabilities & Highlights
 
+* **🗺️ Guided Tour**: 5 interactive missions in the header (*Meet the architecture*, *Let Apigee pick the model*, *When a short prompt is actually hard*, *Survive a model outage*, and *Pin one model with Static Routing*) with step-by-step spotlights and live *"What just happened?"* explainers.
 * **Dynamic Routing**: set the tier → model mapping, then pick a decision strategy (Rules / Classifier LLM / NVIDIA). Each strategy has a *View Details* dialog with its flow diagram.
-* **Static Routing**: pin every prompt to one model from the catalog.
+* **Static Routing & Custom Endpoints**: pin every prompt to one model from the multi-cloud catalog, or click **＋ Add custom endpoint (on-prem / self-hosted)** to connect any public HTTPS OpenAI-compatible server (vLLM, Ollama, NIM, LiteLLM…) for your browser session alongside admin-shared KVM endpoints.
 * **Route & Send Request**: streams the routing decision first, then the answer (rendered as Markdown).
 * **Compare Routing Strategies**: dry run of every strategy on the same prompt, with an agree/disagree verdict, the model each picks, why, decision time and model price. No model is called.
 * **Tricky presets** that show where length heuristics fail: **Short but Hard** (rules → Flash-Lite, classifiers → Pro) and **Long but Easy** (rules → Pro, classifiers → a cheaper tier).
 * **🔌 Simulate model outage** with a *How it works?* explainer, and **View Architecture Diagram** in the left panel.
 * **Telemetry**: pipeline steps, routed model, confidence, reason, fallback / failover banners, tokens, per-request cost and latency.
-* **Session KPIs**: requests, routed cost, cost if every prompt went to the most expensive catalog model (Claude Sonnet 4.5), % saved, average latency and model mix. List prices and their sources are in [server.js](web-ui/server.js).
-* **BFF pattern**: the API key stays in the Node process and never reaches the browser. Locally the server listens on 127.0.0.1 only; on Cloud Run it sits behind Identity-Aware Proxy (IAP) and reads the key from Secret Manager. It sets a strict CSP, checks Origin/Host and allow-lists strategies and model ids. No npm dependencies.
+* **Session KPIs**: requests, routed cost, cost if every prompt went to the most expensive catalog model (Claude Sonnet 4.5), % saved, average latency and model mix (custom endpoints without a price show *Price n/a* and are excluded from cost/savings totals). List prices and their sources are in [server.js](web-ui/server.js).
+* **BFF pattern**: the API key stays in the Node process and never reaches the browser. Locally the server listens on 127.0.0.1 only; on Cloud Run it sits behind Identity-Aware Proxy (IAP) and reads the key from Secret Manager. It sets a strict CSP, checks Origin/Host, validates custom endpoint URLs + DNS, and allow-lists strategies and model ids. No npm dependencies.
 
 ---
 
@@ -292,12 +308,12 @@ curl -s -X POST "https://<your-apigee-host>/llm-router/v1/route" \
 ```
 apigee-model-routing-demo/
 ├── apigee-proxies/llm-router/apiproxy/    # The Apigee X proxy (AI gateway)
-│   ├── proxies/                           # default (/v1/route, /v1/chat), stream (/v1/stream), anthropic (coding agents)
-│   ├── targets/                           # vertex, azure, gemma, maas (+ -stream variants), anthropic-facade
+│   ├── proxies/                           # default (/v1/route, /v1/chat, /v1/custom-endpoints), stream, anthropic
+│   ├── targets/                           # vertex, azure, bedrock, gemma, maas, custom (+ -stream), anthropic-facade
 │   ├── policies/                          # VerifyAPIKey, SpikeArrest, ServiceCallouts, failover, KVM, DataCapture...
 │   └── resources/
 │       ├── jsc/                           # prepare-request, decide-route, failover, provider translators, facade-*
-│       └── properties/routing.properties  # tier → model, thinking, failover and thresholds
+│       └── properties/routing.properties  # tier → model, thinking, failover, custom_allowed_hosts and thresholds
 │
 ├── prompt-classifier/                     # NVIDIA NemoCurator classifier service (FastAPI, Cloud Run)
 │   ├── Dockerfile                         # bakes the model weights into the image
@@ -310,19 +326,22 @@ apigee-model-routing-demo/
 ├── scripts/
 │   ├── setup.sh                           # data collectors, target server, bundle, products, apps
 │   ├── demo.sh                            # CLI scenarios (route | chat)
+│   ├── custom-endpoint.sh                 # manage shared custom / on-prem endpoints in KVM (promote | list | remove)
+│   ├── aws/bedrock-nova-lite-policy.json  # least-privilege IAM policy for Amazon Nova Lite on Bedrock
 │   ├── products/                          # coding-agent API products (allowed_models, spike_rate)
 │   ├── vm-client.sh                       # developer workstation VM: create | ssh | status | update | delete
 │   ├── vm-startup.sh                      # VM startup: Claude Code, apigee-key helper, llm-models, settings
 │   └── custom-report.json                 # Apigee Analytics custom report definition
 │
 ├── web-ui/                                # Demo web app (Node.js 18+, zero dependencies)
-│   ├── server.js                          # BFF: holds the API key, price list, allow-lists
+│   ├── server.js                          # BFF: holds the API key, price list, allow-lists, custom endpoint checks
+│   ├── endpoint-policy.js                 # URL & public-DNS SSRF validation for custom / on-prem endpoints
 │   ├── run.sh                             # fetches the app key via apigeecli, starts the server
 │   ├── Dockerfile                         # container image for Cloud Run (node:22-slim, non-root)
 │   ├── deploy-cloudrun.sh                 # deploys the UI to Cloud Run behind IAP
-│   └── public/                            # index.html, app.js, styles.css, assets/
+│   └── public/                            # index.html, app.js, styles.css, tour/ (Guided Tour), assets/
 │
-└── docs/                                  # Graphviz sources (.dot) and rendered diagrams (.png)
+└── docs/                                  # Diagram sources (architecture-v2.html, .dot, .mmd) and rendered PNGs
 ```
 
 ---
@@ -345,6 +364,8 @@ apigee-model-routing-demo/
 | :--- | :--- | :--- |
 | **NVIDIA NemoCurator prompt-task-and-complexity classifier** | Fast, self-hosted complexity scoring for the `nvidia` strategy | Downloaded from Hugging Face at image build time; check the model licence |
 | **Azure AI Foundry** | GPT-4.1 Nano backend | API key stored in the Apigee KVM `azure-secrets` |
+| **Amazon Bedrock** | Nova Lite backend | Bedrock API key (IAM user scoped to Nova Lite) stored in the Apigee KVM `bedrock-secrets` |
+| **Custom / on-prem OpenAI server** | vLLM, Ollama, NVIDIA NIM, LiteLLM, TGI… | Public HTTPS on port 443; personal per-tab or shared in KVM `custom-endpoints` |
 | **Ollama** | Serves Gemma 2 2B on Cloud Run | Demo only |
 
 ### 3. Workstation tools
@@ -362,22 +383,29 @@ apigee-model-routing-demo/
 * **jq**, **curl** and **Node.js 18+** (for the web UI).
 * **Graphviz** (optional, only to re-render diagrams: `dot -Tpng -Gdpi=170 docs/architecture.dot -o docs/architecture.png`).
 
+### 4. Estimated running cost
+
+* **Apigee X**: billed per your existing Apigee org/environment subscription (eval or paid).
+* **Cloud Run**: `prompt-classifier` (4 vCPU, 4 GiB) and optional `gemma2-api` (4 vCPU, 8 GiB) use `--min-instances 1` to avoid cold starts (~$0.10–$0.25/hr while running; set `--min-instances 0` or delete after testing). `llm-router-ui` scales to zero.
+* **LLM calls**: pay-per-token on Vertex AI, Azure AI Foundry and Amazon Bedrock (fractions of a cent per prompt; `/v1/route` and **Compare Routing Strategies** do not call the target LLM).
+* **Developer workstation VM (optional)**: `e2-small` (~$0.02/hr) + Cloud NAT while provisioned.
+
 ---
 
 ## 🚀 Step-by-Step Setup & Deployment Guide
 
 > [!IMPORTANT]
-> Environment-specific values in this repo (project id and number, Apigee host, service account, Azure resource name) are placeholders that start with `YOUR_`. Search the repo for `YOUR_` and replace them with your own values before deploying.
+> Environment-specific values in this repo (project id and number, Apigee host, service account, Azure resource name, AWS account id) are placeholders that start with `YOUR_`. Search the repo for `YOUR_` and replace them with your own values before deploying.
 
 ### Step 1: Set environment variables
 
 ```bash
-export PROJECT_ID="your-project-id"
+export PROJECT_ID="YOUR_PROJECT_ID"
 export ORG="$PROJECT_ID"                 # Apigee org (usually the project id)
-export ENV="your-apigee-env"
+export ENV="YOUR_APIGEE_ENV"
 export REGION="asia-southeast1"          # Cloud Run region
 export SA="apigee-llm-router@$PROJECT_ID.iam.gserviceaccount.com"
-export APIGEE_HOST="https://your-apigee-host"
+export APIGEE_HOST="https://YOUR_APIGEE_HOST"
 gcloud config set project "$PROJECT_ID"
 gcloud services enable apigee.googleapis.com aiplatform.googleapis.com run.googleapis.com cloudbuild.googleapis.com
 ```
@@ -415,6 +443,43 @@ apigeecli kvms entries create -e "$ENV" -m azure-secrets -k azure_api_key -l "$A
 ```
 
 Update the Gemma and Azure URLs in `targets/gemma*.xml`, `targets/azure*.xml` and `resources/jsc/decide-route.js`.
+
+### Step 4b (optional): Amazon Nova Lite on Bedrock
+
+Needs the AWS CLI, logged in to an account where Nova Lite is available in `ap-southeast-1`.
+
+```bash
+# IAM user that may only call Nova Lite through the APAC inference profile (replace YOUR_AWS_ACCOUNT_ID in the policy first)
+aws iam create-user --user-name apigee-bedrock-invoker
+aws iam put-user-policy --user-name apigee-bedrock-invoker --policy-name bedrock-nova-lite-invoke \
+  --policy-document file://scripts/aws/bedrock-nova-lite-policy.json
+
+# Long-term Bedrock API key (365 days), piped straight into an encrypted environment KVM (never printed)
+apigeecli kvms create -e "$ENV" -n bedrock-secrets -o "$ORG" --default-token
+apigeecli kvms entries create -e "$ENV" -m bedrock-secrets -k bedrock_api_key -o "$ORG" --default-token -l "$(
+  aws iam create-service-specific-credential --user-name apigee-bedrock-invoker \
+    --service-name bedrock.amazonaws.com --credential-age-days 365 \
+    --query ServiceSpecificCredential.ServiceApiKeyValue --output text)"
+```
+
+Models and region are set in `routing.properties` (`bedrock_region`, `bedrock_models=<short id>|<Bedrock model or profile id>`).
+To rotate the key, create a new credential, update the KVM entry, then delete the old credential
+(`aws iam list-service-specific-credentials --user-name apigee-bedrock-invoker`).
+
+### Step 4c (optional): Shared custom / on-prem endpoints
+
+Individual users can add a personal endpoint in their browser tab with zero setup (**＋ Add custom endpoint** under Static Routing). To publish up to three **shared** OpenAI-compatible endpoints (`shared-1`..`shared-3`) for every user of the demo:
+
+```bash
+ORG=$ORG ENV=$ENV ./scripts/custom-endpoint.sh promote \
+  --slot 1 --url https://llm.example.com/v1 --model llama3.1:8b \
+  --label "On-prem Llama" --price-in 0.10 --price-out 0.40 --key-prompt
+
+ORG=$ORG ENV=$ENV ./scripts/custom-endpoint.sh list
+ORG=$ORG ENV=$ENV ./scripts/custom-endpoint.sh remove --slot 1
+```
+
+To restrict custom endpoints to approved domains only, set `custom_allowed_hosts=llm.example.com,*.corp-gw.example.com` in [routing.properties](apigee-proxies/llm-router/apiproxy/resources/properties/routing.properties) (or `custom_endpoints_enabled=false` to disable them).
 
 ### Step 5: Configure routing and deploy the proxy
 
@@ -507,6 +572,9 @@ Open **Console → Apigee → Analytics → Custom reports → "LLM Router - Mod
 
 ## 🎭 Demonstration Scenarios
 
+> [!TIP]
+> Click **🗺️ Guided Tour** in the top header of the web UI for a 5-minute interactive walkthrough covering Scenarios 1–5 automatically.
+
 ### Scenario 1: Same prompt, different strategies
 Pick **Short but Hard** ("Prove there are infinitely many primes, then explain why the same argument fails for twin primes.") and click **Compare Routing Strategies**. The rules engine sees a short prompt and picks Flash-Lite; both classifiers recognise the reasoning and pick Pro.
 
@@ -519,8 +587,8 @@ Send the four calibrated presets (Simple Query, Business Writing, Architecture D
 ### Scenario 4: Model outage and failover
 Tick **🔌 Simulate model outage** and send any prompt. The chosen model returns 404; Apigee fails over to the tier's backup Gemini model, and the UI shows the 🔁 failover banner and an amber Model Call step.
 
-### Scenario 5: Static routing
-Switch to **Static Routing** and pin GPT-4.1 Nano (Azure) or Claude Sonnet 4.5. Same API, same key; Apigee translates the request and response.
+### Scenario 5: Static routing & custom / on-prem endpoints
+Switch to **Static Routing** and pin GPT-4.1 Nano (Azure), Amazon Nova Lite (AWS Bedrock) or Claude Sonnet 4.5 — or click **＋ Add custom endpoint (on-prem / self-hosted)** to connect an OpenAI-compatible server (vLLM, Ollama, NIM, LiteLLM…). Same API, same key; Apigee translates the request and response and fails over to Gemini if the endpoint errors.
 
 ### Scenario 6: Coding agent on governed models (Claude Code)
 1. `./scripts/vm-client.sh ssh`, then `llm-models`. The list comes from the app's API product, not from the client.
@@ -536,10 +604,11 @@ Switch to **Static Routing** and pin GPT-4.1 Nano (Azure) or Claude Sonnet 4.5. 
 ## 🔐 Security Notes
 
 * API key + SpikeArrest on every call. The user tier (`x-user-tier`) comes from the API product, never from client headers.
-* Prompt size limit (20k chars); strategy header allow-listed; the UI server only forwards catalog model ids.
+* Prompt size limit (20k chars); strategy header allow-listed; the UI server only forwards catalog model ids (plus validated `custom` / `shared-1`..`shared-3`).
 * Generic error bodies (backend details masked); route headers sanitised to printable ASCII.
-* Gateway-only headers (`x-api-key`, `x-router-strategy`, `x-preferred-model*`, `x-simulate-outage`) are removed before every backend call, including Azure.
-* Secrets: the Azure key lives in an Apigee KVM; Cloud Run services are private and accept only the proxy service account's ID token.
+* Gateway-only headers (`x-api-key`, `x-router-strategy`, `x-preferred-model*`, `x-custom-endpoint-*`, `x-simulate-outage`) are removed before every backend call, including Azure, Bedrock and custom endpoints.
+* Secrets: Azure, Bedrock and shared custom-endpoint keys live in encrypted Apigee KVMs (`azure-secrets`, `bedrock-secrets`, `custom-endpoints`); Bedrock uses a dedicated IAM user scoped strictly to Nova Lite via the APAC inference profile; Cloud Run services are private and accept only the proxy service account's ID token.
+* Custom-endpoint SSRF defence: [endpoint-policy.js](web-ui/endpoint-policy.js) requires `https://` on port 443, rejects IP literals, credentials, query strings, internal suffixes and wildcard-DNS services (`nip.io`, `sslip.io`…), and verifies that all DNS records resolve to public IPs; [custom-request.js](apigee-proxies/llm-router/apiproxy/resources/jsc/custom-request.js) re-validates the URL and host inside Apigee. Set `custom_allowed_hosts` in `routing.properties` to close DNS rebinding (TOCTOU) against untrusted domains. Personal API keys stay in browser `sessionStorage` and are never stored or logged.
 * Hosted web UI: runs on Cloud Run with IAP and `--no-allow-unauthenticated`. The Apigee app key sits in Secret Manager and only a dedicated runtime service account can read it. The container runs as a non-root user. On Cloud Run the server accepts only its own `*.run.app` host; add custom domains with `PUBLIC_HOSTS`.
 * Outage simulation never sends credentials to a different host (same host, bogus path). Disable it in production with `allow_outage_simulation=false`.
 * Coding-agent endpoint: the client only ever holds an Apigee app key. `x-api-key`, `Authorization`, `x-client-app` and `x-simulate-outage` are removed before the backend call, and the model allow-list is enforced at the gateway (the VM's managed settings are a convenience, not the control).
@@ -563,10 +632,16 @@ $A products delete -n SeniorEngineerLLMProfile
 $A apis delete -n llm-router
 $A targetservers delete -e "$ENV" -n jev-engine
 $A kvms delete -e "$ENV" -n azure-secrets
+$A kvms delete -e "$ENV" -n bedrock-secrets
+$A kvms delete -e "$ENV" -n custom-endpoints
 for d in dc_routed_model dc_route_tier dc_route_decided_by dc_route_decision_ms dc_total_tokens; do $A datacollectors delete -n "$d"; done
 
 gcloud run services delete prompt-classifier --region "$REGION" --quiet
 gcloud run services delete gemma2-api --region "$REGION" --quiet
+
+# optional: AWS Bedrock IAM user (delete its service-specific credentials first if any exist)
+aws iam delete-user-policy --user-name apigee-bedrock-invoker --policy-name bedrock-nova-lite-invoke
+aws iam delete-user --user-name apigee-bedrock-invoker
 
 # Claude Code workstation: VM, NAT/router, IAP SSH rule, service account; then the app key secret
 ./scripts/vm-client.sh delete
@@ -594,13 +669,14 @@ gcloud dns record-sets delete demo.example.com. --zone YOUR_ZONE --type CNAME
 * [Claude on Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/claude)
 * [NVIDIA prompt-task-and-complexity classifier](https://huggingface.co/nvidia/prompt-task-and-complexity-classifier)
 * [Azure AI Foundry](https://learn.microsoft.com/azure/ai-foundry/)
+* [Amazon Bedrock Converse API](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html)
 * [apigeecli](https://github.com/apigee/apigeecli)
 
 ---
 
 ## 📄 License
 
-Licensed under the [Apache License 2.0](LICENSE). Third-party models and services (NVIDIA NemoCurator classifier, Gemma, Claude, Grok, GLM, GPT-4.1) are subject to their own licences and terms.
+Licensed under the [Apache License 2.0](LICENSE). Third-party models and services (NVIDIA NemoCurator classifier, Gemma, Claude, Grok, GLM, GPT-4.1, Amazon Nova) are subject to their own licences and terms.
 
 > [!NOTE]
 > This is a demo, not an official Google product. Model prices shown in the UI are public list prices for illustration only.

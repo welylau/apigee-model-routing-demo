@@ -7,7 +7,7 @@ ENV NODE_ENV=production \
     RULES_FILE=/app/routing.properties
 
 WORKDIR /app
-COPY package.json server.js routing.properties ./
+COPY package.json server.js endpoint-policy.js routing.properties ./
 COPY public ./public
 
 # Zero npm dependencies; run as the image's unprivileged user.

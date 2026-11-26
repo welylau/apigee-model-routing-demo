@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<RaiseFault continueOnError="false" enabled="true" name="RF-CustomEndpointInvalid">
+    <DisplayName>RF-CustomEndpointInvalid</DisplayName>
+    <!-- llmr.custom_invalid_reason is one of the fixed messages in custom-request.js (no user input echoed). -->
+    <FaultResponse>
+        <Set>
+            <StatusCode>400</StatusCode>
+            <ReasonPhrase>Bad Request</ReasonPhrase>
+            <Payload contentType="application/json">{"error":{"code":400,"message":"Custom endpoint rejected by the gateway: {llmr.custom_invalid_reason}."}}</Payload>
+        </Set>
+    </FaultResponse>
+    <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+</RaiseFault>

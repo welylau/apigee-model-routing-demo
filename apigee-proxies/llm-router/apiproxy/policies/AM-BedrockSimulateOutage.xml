@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<AssignMessage continueOnError="false" enabled="true" name="AM-BedrockSimulateOutage">
+    <DisplayName>AM-BedrockSimulateOutage</DisplayName>
+    <!-- Demo only (x-simulate-outage: primary): replace the real Bedrock API key with a dummy one so Bedrock
+         returns HTTP 403 and the proxy fails over to the backup Gemini model. The real key is not sent. -->
+    <Set>
+        <Headers>
+            <Header name="Authorization">Bearer simulated-outage</Header>
+        </Headers>
+    </Set>
+    <IgnoreUnresolvedVariables>false</IgnoreUnresolvedVariables>
+    <AssignTo createNew="false" transport="http" type="request"/>
+</AssignMessage>

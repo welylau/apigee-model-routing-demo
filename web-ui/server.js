@@ -4,6 +4,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const ep = require('./endpoint-policy');
 
 // Local runs bind to loopback only. The Cloud Run image sets BIND_HOST=0.0.0.0, where IAP + Cloud Run IAM front the service.
 const HOST = process.env.BIND_HOST || '127.0.0.1';
@@ -31,18 +32,21 @@ const MAX_PROMPT_CHARS = 20000;
 //   Azure      https://prices.azure.com/api/retail/prices  "gpt 4.1 nano Inp/Outp glbl Tokens" (Global Standard)
 //   Gemma 2:2b is self-hosted on Cloud Run: no per-token charge (you pay for Cloud Run compute).
 //   GLM 5.2    Vertex AI MaaS (Z.ai, global endpoint): $1.40 in / $4.40 out (cached input $0.14), checked 2026-10-07.
+//   Nova Lite  AWS Price List API, Amazon Bedrock ap-southeast-1 on-demand (APS1-NovaLite-*): $0.081 in / $0.324 out,
+//              checked 2026-11-13. Called via the apac.amazon.nova-lite-v1:0 inference profile.
 // Model ids must match what the backends actually serve (verified via the gateway):
 //   Gemini 3.1 Pro is only available as 'gemini-3.1-pro-preview'; Claude 3.5 Sonnet is retired on Vertex.
 const CATALOG = {
   'gemini-3.5-flash-lite': { id: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite', cost: '$', price: { in: 0.30, out: 2.50 } },
   'gpt-4.1-nano': { id: 'gpt-4.1-nano', label: 'GPT-4.1 Nano', cost: '$', price: { in: 0.10, out: 0.40 } },
+  'nova-lite': { id: 'nova-lite', label: 'Amazon Nova Lite', cost: '$', price: { in: 0.081, out: 0.324 } },
   'gemma2:2b': { id: 'gemma2:2b', label: 'Gemma 2:2b', cost: 'Free', price: { in: 0, out: 0 } },
   'gemini-3.5-flash': { id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash', cost: '$$', price: { in: 1.50, out: 9.00 } },
   'claude-sonnet-4-5@20250929': { id: 'claude-sonnet-4-5@20250929', label: 'Claude Sonnet 4.5', cost: '$$$$', price: { in: 3.00, out: 15.00 } },
   'gemini-3.1-pro-preview': { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro', cost: '$$$', price: { in: 2.00, out: 12.00 } },
   'grok-4.6@001': { id: 'grok-4.6@001', label: 'Grok 4.6', cost: '$$', price: { in: 2.00, out: 6.00 } },
-  'glm-5.2': { id: 'glm-5.2', label: 'GLM 5.2', cost: '$$', price: { in: 1.40, out: 4.40 } },
-  'gemini-2.5-pro': { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', cost: '$$$', price: { in: 1.25, out: 10.00 } }
+  'gemini-2.5-pro': { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', cost: '$$$', price: { in: 1.25, out: 10.00 } },
+  'glm-5.2': { id: 'glm-5.2', label: 'GLM 5.2', cost: '$$', price: { in: 1.40, out: 4.40 } }
 };
 
 const MODELS = {
@@ -66,6 +70,12 @@ const STATIC = {
   '/assets/nvidia.png': ['assets/nvidia.png', 'image/png'],
   '/assets/failover.png': ['assets/failover.png', 'image/png'],
   '/assets/architecture.png': ['assets/architecture.png', 'image/png'],
+  '/assets/architecture-old.png': ['assets/architecture-old.png', 'image/png'],
+  '/assets/nova.png': ['assets/nova.png', 'image/png'],
+  // Guided tour (optional add-on; app.js never depends on it).
+  '/tour/tour-engine.js': ['tour/tour-engine.js', 'text/javascript; charset=utf-8'],
+  '/tour/tour-missions.js': ['tour/tour-missions.js', 'text/javascript; charset=utf-8'],
+  '/tour/tour.css': ['tour/tour.css', 'text/css; charset=utf-8'],
 };
 const ORG = process.env.ORG || 'YOUR_PROJECT_ID';
 const ENV = process.env.APIGEE_ENV || 'default-dev';
@@ -102,6 +112,51 @@ function loadRules() {
   }
 }
 const RULES = loadRules();
+
+// ---- Custom / on-prem endpoints -------------------------------------------------------------------------
+// Optional host allow-list, same property the proxy enforces (routing.properties custom_allowed_hosts).
+function readProp(name) {
+  try {
+    const m = fs.readFileSync(RULES_FILE, 'utf8').match(new RegExp('^[ \\t]*' + name + '[ \\t]*=[ \\t]*(.*?)[ \\t]*$', 'm'));
+    return m ? m[1] : '';
+  } catch (e) { return ''; }
+}
+const CUSTOM_ENABLED = readProp('custom_endpoints_enabled') !== 'false';
+const CUSTOM_ALLOWED_HOSTS = readProp('custom_allowed_hosts').split(',').map(s => s.trim()).filter(Boolean);
+
+// Shared endpoints (registered by an admin with scripts/custom-endpoint.sh) come from the gateway, which reads its
+// KVM and returns display metadata only (no keys). Cached for 60 s; failures keep the last good list.
+let sharedCache = { at: 0, items: {} };
+async function sharedCatalog() {
+  if (!CUSTOM_ENABLED) return {};
+  if (Date.now() - sharedCache.at < 60000) return sharedCache.items;
+  try {
+    const r = await fetch(`${APIGEE_BASE}/custom-endpoints`, { headers: { 'x-api-key': API_KEY }, signal: AbortSignal.timeout(5000) });
+    const j = r.ok ? await r.json() : null;
+    const items = {};
+    for (const e of (j && Array.isArray(j.endpoints) ? j.endpoints : [])) {
+      if (!/^shared-[1-3]$/.test(e.id)) continue;
+      const price = e.price && Number.isFinite(e.price.in) && Number.isFinite(e.price.out) ? { in: e.price.in, out: e.price.out } : null;
+      items[e.id] = {
+        id: e.id, label: String(e.label || e.id).slice(0, 40), cost: price ? '$' : 'n/a', price,
+        custom: 'shared', host: e.host || null, model: String(e.model || '').slice(0, 128),
+      };
+    }
+    sharedCache = { at: Date.now(), items };
+  } catch (e) {
+    sharedCache.at = Date.now() - 45000; // retry in ~15 s
+  }
+  return sharedCache.items;
+}
+
+// Validates the caller's personal endpoint (shape + DNS -> public IPs only). Throws ep.EndpointError.
+async function sanitizeCustom(c) {
+  if (!CUSTOM_ENABLED) throw new ep.EndpointError('custom endpoints are disabled');
+  if (!c || typeof c !== 'object' || Array.isArray(c)) throw new ep.EndpointError('endpoint settings are missing');
+  const { url, host } = ep.normalizeUrl(c.url, CUSTOM_ALLOWED_HOSTS);
+  await ep.checkDns(host);
+  return { url, host, model: ep.checkModel(c.model), key: ep.checkKey(c.key) };
+}
 
 const SECURITY_HEADERS = {
   // Google Fonts is the only third-party origin (Plus Jakarta Sans / JetBrains Mono, matching the reference demo UI).
@@ -185,14 +240,18 @@ function usageFrom(u) {
 const ROUTING_TIERS = ['simple', 'standard', 'complex', 'coding'];
 
 // Returns {} when absent, a clean {tier: modelId} map when valid, or false when anything is off.
-function sanitizePrefs(prefs) {
+// shared: ids of the shared custom endpoints; "custom" (personal endpoint) is accepted and validated separately.
+function sanitizePrefs(prefs, shared) {
   if (prefs === undefined || prefs === null) return {};
   if (typeof prefs !== 'object' || Array.isArray(prefs)) return false;
   const out = {};
   for (const [tier, modelId] of Object.entries(prefs)) {
     if (!ROUTING_TIERS.includes(tier)) return false;
     if (modelId === null || modelId === '') continue;
-    if (typeof modelId !== 'string' || !Object.prototype.hasOwnProperty.call(CATALOG, modelId)) return false;
+    if (typeof modelId !== 'string') return false;
+    const known = Object.prototype.hasOwnProperty.call(CATALOG, modelId) ||
+      Object.prototype.hasOwnProperty.call(shared || {}, modelId) || (CUSTOM_ENABLED && modelId === 'custom');
+    if (!known) return false;
     out[tier] = modelId;
   }
   return out;
@@ -220,6 +279,11 @@ function gatewayHeaders(input) {
   const headers = { 'Content-Type': 'application/json', 'x-api-key': API_KEY, 'x-router-strategy': input.strategy };
   for (const [tier, modelId] of Object.entries(input.prefs || {})) headers[`x-preferred-model-${tier}`] = modelId;
   if (input.simulateOutage) headers['x-simulate-outage'] = 'primary';
+  if (input.custom) {
+    headers['x-custom-endpoint-url'] = input.custom.url;
+    headers['x-custom-endpoint-model'] = input.custom.model;
+    if (input.custom.key) headers['x-custom-endpoint-key'] = input.custom.key;
+  }
   return headers;
 }
 
@@ -315,10 +379,30 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, fs.readFileSync(path.join(PUBLIC, file)), type);
     }
     if (req.method === 'GET' && url.pathname === '/api/config') {
-      return send(res, 200, { models: MODELS, catalog: CATALOG, strategies: STRATEGIES, gateway: APIGEE_BASE.replace(/^https?:\/\//, ''), org: ORG, env: ENV });
+      const shared = await sharedCatalog();
+      return send(res, 200, {
+        models: MODELS, catalog: Object.assign({}, CATALOG, shared), strategies: STRATEGIES,
+        gateway: APIGEE_BASE.replace(/^https?:\/\//, ''), org: ORG, env: ENV,
+        customEndpoints: { enabled: CUSTOM_ENABLED, allowList: CUSTOM_ALLOWED_HOSTS.length > 0 },
+      });
     }
     if (req.method === 'GET' && url.pathname === '/api/rules') {
       return RULES ? send(res, 200, RULES) : send(res, 503, { error: 'Rules configuration unavailable.' });
+    }
+    // Checks a personal endpoint (URL shape + DNS) without calling it. The key is not needed here and is ignored.
+    if (req.method === 'POST' && url.pathname === '/api/custom/validate') {
+      if (rateLimited()) return send(res, 429, { error: 'Too many requests, slow down.' });
+      let body;
+      try { body = await readJson(req); } catch (e) { return send(res, 400, { error: 'Invalid request body.' }); }
+      try {
+        const c = await sanitizeCustom({ url: body.url, model: body.model });
+        const label = ep.checkLabel(body.label, c.host);
+        const price = ep.checkPrice(body.priceIn, body.priceOut);
+        return send(res, 200, { ok: true, url: c.url, host: c.host, model: c.model, label, price });
+      } catch (e) {
+        if (e instanceof ep.EndpointError) return send(res, 400, { error: e.message });
+        throw e;
+      }
     }
     if (req.method === 'POST' && url.pathname === '/api/gateway') {
       if (rateLimited()) return send(res, 429, { error: 'Too many requests, slow down.' });
@@ -330,12 +414,19 @@ const server = http.createServer(async (req, res) => {
         prompt: typeof body.prompt === 'string' ? body.prompt : '',
         strategy: STRATEGIES.includes(body.strategy) ? body.strategy : null,
         mode: MODES.includes(body.mode) ? body.mode : null,
-        prefs: sanitizePrefs(body.prefs),
+        prefs: sanitizePrefs(body.prefs, await sharedCatalog()),
         simulateOutage: body.simulateOutage === true,
       };
       const badFlag = body.simulateOutage !== undefined && typeof body.simulateOutage !== 'boolean';
       if (!input.prompt.trim() || input.prompt.length > MAX_PROMPT_CHARS || !input.strategy || !input.mode || input.prefs === false || badFlag) {
         return send(res, 400, { error: 'Invalid prompt, strategy, mode, model preference or option.' });
+      }
+      // The personal endpoint is only forwarded when a tier actually uses it.
+      if (Object.values(input.prefs).includes('custom')) {
+        try { input.custom = await sanitizeCustom(body.custom); } catch (e) {
+          if (e instanceof ep.EndpointError) return send(res, 400, { error: `Custom endpoint: ${e.message}.` });
+          throw e;
+        }
       }
       if (input.mode === 'stream') return await streamGateway(input, res);
       return send(res, 200, await callGateway(input));

@@ -2,6 +2,14 @@
 sanitize.sh
 restore.sh
 .sanitize.map
+.sanitize.state
+.sanitize.state.tmp.*
+.sanitize.allow
+.env
+.env.*
+!.env.example
+*.pem
+*-key.json
 
 # Python / Node / OS
 .venv/
